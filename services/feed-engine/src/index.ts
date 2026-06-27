@@ -15,7 +15,23 @@ import { YahooSourceAdapter } from "./yahoo/yahoo-adapter.js";
  * Yahoo close-read land; both live sockets are inert until the first capture
  * (Phase 6).
  */
-initializeApp();
+// firebase-admin cannot derive the RTDB URL for non-US regions: it reads the URL
+// from the `databaseURL` option (or the FIREBASE_CONFIG JSON), not a bare env var,
+// so getDatabase() throws synchronously without it. Pass it explicitly from the
+// FIREBASE_DATABASE_URL the deploy injects as a Cloud Run env var. When unset
+// (e.g. the RTDB emulator with FIREBASE_DATABASE_EMULATOR_HOST), this is undefined
+// and initializeApp falls back to its normal resolution.
+initializeApp({
+  databaseURL: process.env["FIREBASE_DATABASE_URL"],
+});
+
+// This service is the sole, always-on RTDB writer and its writes are fire-and-forget
+// (the orchestrator voids the write promises). A transient RTDB error surfaces as an
+// unhandled rejection, which Node would turn into a process exit — tearing down the
+// writer over one failed write. Log and keep streaming instead.
+process.on("unhandledRejection", (reason) => {
+  console.error("feed-engine: unhandled rejection", reason);
+});
 
 const primary = new LsSourceAdapter({
   isinForId: (id) => id, // TODO: L&S instrument-search id-map.
@@ -32,8 +48,9 @@ const feed = new FeedOrchestrator(
   rtdbWriterFromAdmin(),
   new FeedStateMachine(),
 );
-feed.start();
 
+// Bind the health port FIRST so Cloud Run sees the container listening within the
+// startup deadline; only then begin streaming (which kicks off the RTDB writes).
 const port = Number(process.env["PORT"] ?? 8080);
 createServer((req, res) => {
   if (req.url === "/healthz") {
@@ -43,4 +60,6 @@ createServer((req, res) => {
   }
   res.writeHead(404);
   res.end();
-}).listen(port);
+}).listen(port, () => {
+  feed.start();
+});
