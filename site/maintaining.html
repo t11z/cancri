@@ -59,7 +59,7 @@
           <thead><tr><th>class</th><th>runs as</th><th>responsibility</th></tr></thead>
           <tbody>
             <tr><td><strong>client</strong></td><td>browser · Firebase Hosting</td><td>vanilla-TS terminal, single rAF loop. <strong>Subscribes to normalised ticks only</strong> — no source internals, no keys.</td></tr>
-            <tr><td><strong>request/response</strong></td><td>Cloud Functions (2nd gen)</td><td>Gemini normalise/confirm + logo. Vertex via IAM, no API key.</td></tr>
+            <tr><td><strong>request/response</strong></td><td>Cloud Functions (2nd gen)</td><td>Gemini intake/confirm + logo. Vertex via IAM, no API key.</td></tr>
             <tr><td><strong>always-on / scheduled</strong></td><td>Cloud Run service + Job</td><td>The feed-engine (sole RTDB writer) and the self-heal capture Job.</td></tr>
           </tbody>
         </table>

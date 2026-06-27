@@ -28,7 +28,7 @@
 
 ## what it is
 
-cancri is an **access-gated, real-time web terminal** that streams *your own* portfolio at cent-level latency. you describe your holdings in plain language (or drop a CSV/Excel), an LLM normalises them into a confirmed inventory, and a live data layer keeps the numbers moving — flashing green up, red down, with a sparkline that draws itself on every tick.
+cancri is an **access-gated, real-time web terminal** that streams *your own* portfolio at cent-level latency. you describe your holdings in plain language (or drop a CSV/Excel), an LLM reads them into a confirmed inventory, and a live data layer keeps the numbers moving — flashing green up, red down, with a sparkline that draws itself on every tick.
 
 it is **read-only**. no orders, no trading. just the truth about your book, beautifully.
 
@@ -79,7 +79,7 @@ every architecture decision is recorded as a [Structured MADR](docs/decisions/) 
 apps/web/                  the terminal SPA (Vite, vanilla TS, single rAF loop)
 services/feed-engine/      always-on Cloud Run: L&S + Yahoo taps, oracle, FSM, sole RTDB writer
 services/selfheal/         Cloud Run Job: capture-and-diff → gated PR
-functions/                 Gemini normalise/confirm + logo (Vertex AI, IAM, no keys)
+functions/                 Gemini intake/confirm + logo (Vertex AI, IAM, no keys)
 packages/data-contracts/   the one shared seam: Tick, SourceAdapter, inventory schema
 packages/ls-protocol/      the L&S break surface + deterministic replay (the self-heal target)
 packages/selfheal-core/    pure fix-search + replay gate + fixture corpus
@@ -137,7 +137,7 @@ unit + emulator), each its own reviewed PR:
 |---|---|---|
 | 1 | terminal UI | typecheck + prod build |
 | 2 | auth + per-user persistence + isolation rules | emulator (rules + persistence) |
-| 3 | Gemini normalisation + onboarding | functions-emulator E2E |
+| 3 | Gemini intake + onboarding | functions-emulator E2E |
 | 4 | feed-engine + RTDB tick bus | RTDB transport E2E |
 | 5 | Yahoo fallback + sanity oracle + degradation FSM | unit |
 | 6 | self-heal core + replay gate + CI gate | unit |
