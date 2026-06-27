@@ -10,4 +10,5 @@ packages:
 allowBuilds:
   "@firebase/util": true
   "@google/genai": true
+  esbuild: true
   protobufjs: true

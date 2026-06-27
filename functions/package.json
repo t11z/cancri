@@ -2,14 +2,13 @@
   "name": "@cancri/functions",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "description": "Firebase Cloud Functions (2nd gen): Gemini inventory normalisation + confirm (ADR-0008).",
   "main": "lib/index.js",
   "engines": {
     "node": "22"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node build.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run"
   },
@@ -23,6 +22,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "esbuild": "^0.28.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   }

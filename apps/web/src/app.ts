@@ -1,5 +1,5 @@
 import { SimSource, type SimScenario } from "@cancri/sim-source";
-import type { FeedStatus, Tick } from "@cancri/data-contracts";
+import type { FeedStatus, ProposedPosition, Tick } from "@cancri/data-contracts";
 import {
   emptyHot,
   SPARK_LEN,
@@ -8,17 +8,13 @@ import {
   type HotState,
   type Screen,
 } from "./state.js";
-import { DEFAULT_PROPOSAL, buildDemoInventory } from "./fixtures.js";
-import {
-  demoToPositions,
-  inventoryFromProposal,
-  positionsToDemo,
-  simSeedsFromInventory,
-} from "./inventory.js";
+import { buildDemoInventory } from "./fixtures.js";
+import { positionsToDemo, proposalToPositions, simSeedsFromInventory } from "./inventory.js";
 import { seedSeries } from "./sparkline.js";
 import { onAuth, signInGoogle, signInOrRegister, signOutUser, type User } from "./auth.js";
 import { db } from "./firebase.js";
-import { loadInventory, saveInventory } from "./persistence.js";
+import { loadInventory } from "./persistence.js";
+import { callConfirm, callNormalize, type NormalizeInput } from "./functions-client.js";
 import { renderBoot } from "./screens/boot.js";
 import { renderAuth } from "./screens/auth.js";
 import { renderOnboard } from "./screens/onboard.js";
@@ -48,6 +44,7 @@ export class App {
   bootStep = 0;
 
   inventory: readonly DemoPosition[] = [];
+  proposal: readonly ProposedPosition[] = [];
   hot: HotState = emptyHot();
   feed: FeedStatus = DEFAULT_FEED;
   source: SimSource | null = null;
@@ -177,18 +174,23 @@ export class App {
     this.render();
   }
 
-  /** Confirm "lock inventory & go live": persist the confirmed book, then stream. */
-  async goLive(): Promise<void> {
-    const inv = inventoryFromProposal(DEFAULT_PROPOSAL);
-    const uid = this.user?.uid;
-    if (uid !== undefined) {
-      try {
-        await saveInventory(db, uid, demoToPositions(inv));
-      } catch {
-        // Persistence failure shouldn't block going live in the demo; surfaced later.
-      }
+  /** Onboarding: send raw input to the server-side Gemini normaliser, then show
+   *  the proposal for review (brief §B). Throws on failure so the caller can surface it. */
+  async parseInput(input: NormalizeInput): Promise<void> {
+    this.proposal = await callNormalize(input);
+    this.goScreen("confirm");
+  }
+
+  /** Confirm "lock inventory & go live": persist the confirmed book server-side
+   *  (with re-validation), then stream. */
+  async confirmAndGoLive(): Promise<void> {
+    const positions = proposalToPositions(this.proposal);
+    try {
+      await callConfirm(positions);
+    } catch {
+      // Server persistence failure shouldn't block the demo; surfaced later.
     }
-    this.goLiveWith(inv);
+    this.goLiveWith(positionsToDemo(positions));
   }
 
   /** Start (or restart) the live feed for a given inventory. */

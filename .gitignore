@@ -5,6 +5,7 @@ node_modules/
 # build output
 dist/
 build/
+functions/lib/
 *.tsbuildinfo
 
 # generated (regenerated from design/ by tools/tokens)
