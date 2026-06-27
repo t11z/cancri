@@ -35,9 +35,6 @@ importers:
 
   functions:
     dependencies:
-      '@cancri/data-contracts':
-        specifier: workspace:*
-        version: link:../packages/data-contracts
       '@google/genai':
         specifier: ^2.10.0
         version: 2.10.0

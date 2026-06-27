@@ -68,7 +68,7 @@ jobs:
         run: >
           npx firebase-tools@15.22.3 deploy
           --only hosting,functions,firestore:rules,database
-          --project "$PROJECT_ID" --non-interactive
+          --project "$PROJECT_ID" --non-interactive --force
 
       # gcloud reads the same ADC as firebase, so the long-running container
       # deploys stay off the firebase-tools auth path (and its v15 #10726 timeout).
