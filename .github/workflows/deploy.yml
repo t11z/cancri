@@ -63,7 +63,7 @@ jobs:
       # deploys stay off the firebase-tools auth path (and its v15 #10726 timeout).
       - name: Build & deploy feed-engine (Cloud Run)
         run: |
-          REGION="${{ vars.GCP_REGION || 'europe-west3' }}"
+          REGION="${{ vars.GCP_REGION || 'europe-west1' }}"
           IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/cancri/feed-engine:${{ github.sha }}"
           gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
           docker build -f services/feed-engine/Dockerfile -t "$IMAGE" .

@@ -133,7 +133,7 @@ export function getGeminiClient(): GeminiClient {
   if (!useVertex) return new MockGemini();
   return new VertexGemini(
     project,
-    process.env["CANCRI_VERTEX_LOCATION"] ?? "europe-west3",
+    process.env["CANCRI_VERTEX_LOCATION"] ?? "europe-west1",
     process.env["CANCRI_GEMINI_MODEL"] ?? "gemini-3.5-flash",
   );
 }

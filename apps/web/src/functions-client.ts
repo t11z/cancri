@@ -9,10 +9,10 @@ import { app } from "./firebase.js";
 
 /**
  * Client for the server-side Gemini callables (ADR-0008). The region must match
- * the functions' deploy region (europe-west3, ADR-0001). No Gemini key ever
+ * the functions' deploy region (europe-west1, ADR-0001). No Gemini key ever
  * reaches the client — it only invokes the callable.
  */
-const REGION = "europe-west3";
+const REGION = "europe-west1";
 const env = import.meta.env;
 const useEmulator = (env.VITE_USE_EMULATOR ?? (env.DEV ? "true" : "false")) === "true";
 
