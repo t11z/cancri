@@ -42,3 +42,5 @@ Frontmatter (title, description, type, category, tags, status, created, updated,
 | [0009](0009-ls-protocol-break-surface-isolation.md) | Quarantine the L&S break surface in a versioned ls-protocol module | accepted |
 | [0010](0010-self-heal-governance-pr-deterministic-gate.md) | Self-heal: App-authored PR gated by offline deterministic replay, no auto-merge | accepted |
 | [0011](0011-frontend-vanilla-ts-vite-single-raf.md) | Frontend is vanilla TS + Vite with a single rAF loop and two-tier state | accepted |
+| [0012](0012-access-gating-firestore-rules-allowlist.md) | Access gating via a Firestore-rules invite allowlist | accepted |
+| [0013](0013-always-available-holdings-intake-merge.md) | Holdings intake is always-available and merges into the book, user-resolved | accepted |

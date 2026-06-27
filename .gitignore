@@ -16,6 +16,9 @@ services/feed-engine/lib/
 .env
 .env.*
 !.env.example
+# functions/.env holds only non-secret Vertex config (no Gemini key — IAM, ADR-0008),
+# and firebase deploy reads it at deploy time, so it is committed on purpose.
+!functions/.env
 *.pem
 serviceAccount*.json
 

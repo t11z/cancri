@@ -128,37 +128,30 @@ export class MockGemini implements GeminiClient {
 }
 
 /**
- * Wraps the primary client with the deterministic mock as a safety net. If the
- * Vertex call throws at runtime (API not enabled, runtime SA missing
- * roles/aiplatform.user, model unavailable in the region), onboarding degrades
- * to the offline parser instead of going dark — the same "degrade to the
- * fallback rather than going dark" principle the price layer follows. The real
- * Vertex error is logged so the misconfiguration stays visible in Cloud Logging.
+ * Pick the client for the current runtime.
+ *
+ * Deployed, we call the real model and let a failure surface honestly to the
+ * caller (ADR-0008: "degraded normalisation surfaces as a clarify/error state,
+ * never a silent bad write"). We deliberately do NOT fall back to the
+ * deterministic parser in production: the offline parser only knows a dozen
+ * symbols, so degrading to it would silently drop most of a real portfolio and
+ * present a mangled book as if it were authoritative — the opposite of honest.
+ *
+ * The mock stands in only where there is no real model to call: the Functions
+ * emulator, unit tests, and any environment with Vertex explicitly disabled or
+ * no project configured. The default is therefore "real model when one is
+ * reachable" — a missing env flag can no longer silently route production
+ * through the 12-symbol parser.
  */
-export class FallbackGemini implements GeminiClient {
-  constructor(
-    private readonly primary: GeminiClient,
-    private readonly fallback: GeminiClient,
-  ) {}
-
-  async normalise(text: string): Promise<RawProposal[]> {
-    try {
-      return await this.primary.normalise(text);
-    } catch (e) {
-      console.error("normalise: primary (Vertex) failed — degrading to deterministic parser", e);
-      return this.fallback.normalise(text);
-    }
-  }
-}
-
 export function getGeminiClient(): GeminiClient {
   const project = process.env["GOOGLE_CLOUD_PROJECT"] ?? process.env["GCLOUD_PROJECT"] ?? "";
-  const useVertex = process.env["CANCRI_USE_VERTEX"] === "true" && project !== "";
+  const inEmulator = process.env["FUNCTIONS_EMULATOR"] === "true";
+  const useVertex =
+    process.env["CANCRI_USE_VERTEX"] !== "false" && !inEmulator && project !== "";
   if (!useVertex) return new MockGemini();
-  const vertex = new VertexGemini(
+  return new VertexGemini(
     project,
     process.env["CANCRI_VERTEX_LOCATION"] ?? "europe-west1",
     process.env["CANCRI_GEMINI_MODEL"] ?? "gemini-3.5-flash",
   );
-  return new FallbackGemini(vertex, new MockGemini());
 }

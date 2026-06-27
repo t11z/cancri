@@ -169,6 +169,9 @@ export class Dashboard {
           <div class="totalchg" style="font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;"></div>
         </div>
         <div style="flex:1;"></div>
+        <div style="display:flex;align-items:center;padding:0 16px;">
+          <button data-action="add" title="add holdings" style="cursor:pointer;font-family:inherit;font-size:11.5px;font-weight:700;letter-spacing:.5px;color:#36f9d0;background:transparent;border:1px solid #1a3a33;border-radius:7px;padding:7px 13px;">+ add</button>
+        </div>
         <div style="display:flex;align-items:center;gap:9px;padding:9px 18px;border-left:1px solid #1a2130;">
           <span style="${connDot}"></span>
           <div style="display:flex;flex-direction:column;line-height:1.25;">
@@ -221,7 +224,7 @@ export class Dashboard {
     // wire body buttons (empty/error)
     app.root.querySelectorAll<HTMLElement>("[data-action]").forEach((el) => {
       const a = el.dataset["action"];
-      if (a === "feed") el.addEventListener("click", () => app.goScreen("onboard"));
+      if (a === "feed" || a === "add") el.addEventListener("click", () => app.goScreen("onboard"));
       if (a === "retry") el.addEventListener("click", () => app.goState("normal"));
     });
   }

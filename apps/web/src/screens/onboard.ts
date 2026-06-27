@@ -12,29 +12,33 @@ const TERMINAL = "#36f9d0";
 const WARN = "#ff8fa3";
 
 /**
- * Turn a failed normalise callable into a message that names the actual cause,
+ * Turn a failed intake callable into a message that names the actual cause,
  * instead of always blaming a missing backend. Firebase callables reject with a
  * FirebaseError carrying a `functions/*` code; surface it so a misconfiguration
  * (not signed in, callable not deployed, emulator down) is distinguishable.
+ *
+ * User-facing copy never says "normalise" — that is our internal term for the
+ * pipeline, not language the user should meet (the assistant simply "reads"
+ * their portfolio).
  */
-function describeNormalizeError(e: unknown): string {
+function describeIntakeError(e: unknown): string {
   const code = typeof e === "object" && e !== null ? (e as { code?: unknown }).code : undefined;
   switch (code) {
     case "functions/unauthenticated":
       return "you're signed out — sign in again, then retry.";
     case "functions/not-found":
-      return "normalisation backend isn't deployed/running (callable not found).";
+      return "the assistant isn't available right now (backend not deployed).";
     case "functions/permission-denied":
-      return "normalisation was rejected — your account isn't permitted.";
+      return "your account isn't permitted to add holdings.";
     case "functions/internal":
     case "functions/unavailable":
-      return "couldn't reach the normalisation backend — is it running?";
+      return "couldn't reach the assistant — try again in a moment.";
     default: {
       const msg =
         typeof e === "object" && e !== null ? (e as { message?: unknown }).message : undefined;
       const suffix =
         typeof code === "string" ? ` [${code}]` : typeof msg === "string" ? ` (${msg})` : "";
-      return `normalisation failed${suffix}.`;
+      return `couldn't read that${suffix} — try again.`;
     }
   }
 }
@@ -117,19 +121,27 @@ function summarise(proposal: readonly ProposedPosition[]): string {
 }
 
 /**
- * Onboarding intake (brief §B). Both routes — the chat input and the file drop —
- * converge on the same server-side normalisation; the assistant streams its reply
- * back into the thread (terminal animation) before the proposal screen opens.
+ * Holdings intake (brief §B). The same screen serves the first-run case (an empty
+ * book) and adding to an existing book later — onboarding is just "add into an
+ * empty book". Both routes — the chat input and the file drop — converge on the
+ * same server-side pipeline; the assistant streams its reply back into the thread
+ * (terminal animation) before the proposal screen opens. When a book already
+ * exists, a way back to the dashboard is offered so intake is never a dead end.
  */
 export function renderOnboard(app: App): void {
+  const adding = app.inventory.length > 0;
+  const crumb = adding ? "add holdings" : "feed the terminal";
+  const back = adding
+    ? `<button id="cc-toback" style="margin-left:auto;cursor:pointer;font-family:inherit;font-size:11px;color:#6b7787;background:transparent;border:1px solid #1a2130;border-radius:6px;padding:5px 11px;">‹ dashboard</button>`
+    : `<span style="margin-left:auto;color:#39424f;font-size:11px;">step 1 — describe or drop</span>`;
   app.root.innerHTML = `
   <div style="position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;">
     <div style="${TOPBAR}">
       <img src="/cancri-logo-mark.png" alt="cancri" width="22" height="22" style="border-radius:50%;filter:drop-shadow(0 0 7px #7b5cff55);" />
       <span style="color:#7b5cff;font-weight:700;letter-spacing:2px;">CANCRI</span>
       <span style="color:#39424f;">/</span>
-      <span style="color:#6b7787;">onboarding · feed the terminal</span>
-      <span style="margin-left:auto;color:#39424f;font-size:11px;">step 1 — describe or drop</span>
+      <span style="color:#6b7787;">${crumb}</span>
+      ${back}
     </div>
     <div style="flex:1;display:grid;grid-template-columns:1.3fr 1fr;gap:0;min-height:0;">
       <div style="display:flex;flex-direction:column;min-height:0;border-right:1px solid #1a2130;">
@@ -153,7 +165,7 @@ export function renderOnboard(app: App): void {
           <div style="font-size:11px;color:#6b7787;max-width:230px;line-height:1.6;">messy is fine. the machine reconciles tickers, quantities &amp; names — you confirm before anything goes live.</div>
           <input id="cc-file" type="file" accept=".csv,.xlsx,.xls,.txt,text/plain" style="display:none;" />
         </label>
-        <div style="font-size:10.5px;color:#39424f;line-height:1.7;">↳ next: the assistant normalises your input into a structured inventory. <span style="color:#7b5cff;">the machine proposes — you dispose.</span></div>
+        <div style="font-size:10.5px;color:#39424f;line-height:1.7;">↳ next: the assistant reads your input and lays it out as a structured inventory. <span style="color:#7b5cff;">the machine proposes — you dispose.</span></div>
       </div>
     </div>
   </div>`;
@@ -163,6 +175,12 @@ export function renderOnboard(app: App): void {
   const parseBtn = app.root.querySelector<HTMLButtonElement>("#cc-parse")!;
   const fileInput = app.root.querySelector<HTMLInputElement>("#cc-file")!;
   const err = app.root.querySelector<HTMLDivElement>("#cc-onerr")!;
+
+  // When adding to an existing book, the dashboard is one click away — the live
+  // feed kept running underneath, so returning is just a re-render.
+  app.root
+    .querySelector<HTMLButtonElement>("#cc-toback")
+    ?.addEventListener("click", () => app.goScreen("dash"));
 
   // Render any seed messages (none by default) through the shared bubble styling.
   for (const m of DEFAULT_CHAT) appendBubble(thread, m.role).txt.textContent = m.text;
@@ -206,7 +224,7 @@ export function renderOnboard(app: App): void {
       }
     } catch (e) {
       reply.txt.style.color = WARN;
-      await streamText(reply, describeNormalizeError(e), app.reduce, scroll);
+      await streamText(reply, describeIntakeError(e), app.reduce, scroll);
       reply.caret.style.display = "none";
       setBusy(false);
       chatInput.focus();
