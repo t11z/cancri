@@ -176,11 +176,12 @@ export class App {
     this.render();
   }
 
-  /** Onboarding: send raw input to the server-side Gemini normaliser, then show
-   *  the proposal for review (brief §B). Throws on failure so the caller can surface it. */
-  async parseInput(input: NormalizeInput): Promise<void> {
+  /** Onboarding: send raw input to the server-side normaliser and store the
+   *  proposal (brief §B). The caller drives the chat stream and the transition to
+   *  the proposal screen. Throws on failure so the caller can surface it. */
+  async normalizeInput(input: NormalizeInput): Promise<readonly ProposedPosition[]> {
     this.proposal = await callNormalize(input);
-    this.goScreen("confirm");
+    return this.proposal;
   }
 
   /** Confirm "lock inventory & go live": persist the confirmed book server-side

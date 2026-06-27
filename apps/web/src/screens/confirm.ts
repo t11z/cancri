@@ -57,7 +57,7 @@ export function renderConfirm(app: App): void {
       <span style="margin-left:auto;color:#ffd23f;font-size:11px;">step 2 — the machine proposes, you dispose</span>
     </div>
     <div style="flex:1;overflow:auto;padding:22px 26px;">
-      <div style="font-size:12px;color:#6b7787;margin-bottom:14px;">gemini parsed <span style="color:#36f9d0;">${proposal.length} instruments</span> · <span style="color:#ffd23f;">${flaggedCount} flagged for your eye</span>. edit anything, then lock it in.</div>
+      <div style="font-size:12px;color:#6b7787;margin-bottom:14px;">parsed <span style="color:#36f9d0;">${proposal.length} instruments</span> · <span style="color:#ffd23f;">${flaggedCount} flagged for your eye</span>. edit anything, then lock it in.</div>
       <div style="border:1px solid #1a2130;border-radius:10px;overflow:hidden;">
         <div style="display:grid;grid-template-columns:26px 1.4fr 1fr 0.9fr 1.3fr 90px;gap:0;font-size:10.5px;color:#39424f;letter-spacing:1px;background:#0d121b;border-bottom:1px solid #1a2130;padding:10px 14px;">
           <div></div><div>INSTRUMENT</div><div>SYMBOL</div><div style="text-align:right;">QUANTITY</div><div>CONFIDENCE</div><div style="text-align:right;">SOURCE</div>
