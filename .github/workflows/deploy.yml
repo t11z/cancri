@@ -42,7 +42,12 @@ jobs:
         # demo-cancri config in apps/web/src/firebase.ts.
         env:
           VITE_USE_EMULATOR: "false"
-          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          # The web API key is public (it ships in the client bundle), so it belongs
+          # under repo Variables like the rest. Fall back to the Secrets tab in case
+          # it was stored there: an unset `vars.*` expands to "" (not undefined), and
+          # an empty key bakes an invalid config into the bundle (auth/invalid-api-key
+          # at load → blank page). `vars.X || secrets.X` resolves it from either tab.
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY || secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
           VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
