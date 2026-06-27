@@ -59,10 +59,21 @@ jobs:
           --only hosting,functions,firestore:rules,database
           --project "$PROJECT_ID" --non-interactive
 
-      - name: Deploy Cloud Run service + Job (gcloud — avoids firebase-tools #10726)
+      # gcloud reads the same ADC as firebase, so the long-running container
+      # deploys stay off the firebase-tools auth path (and its v15 #10726 timeout).
+      - name: Build & deploy feed-engine (Cloud Run)
         run: |
-          # gcloud reads the same ADC as firebase, so these long-running deploys
-          # stay off the firebase-tools auth path. Needs container images /
-          # buildpacks for the services — TODO before enabling.
-          echo "TODO: gcloud run deploy cancri-feed-engine --source services/feed-engine --region europe-west3"
-          echo "TODO: gcloud run jobs deploy cancri-selfheal --source services/selfheal --region europe-west3"
+          REGION="${{ vars.GCP_REGION || 'europe-west3' }}"
+          IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/cancri/feed-engine:${{ github.sha }}"
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker build -f services/feed-engine/Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"
+          gcloud run deploy cancri-feed-engine \
+            --image "$IMAGE" --region "$REGION" --project "$PROJECT_ID" \
+            --ingress internal --no-allow-unauthenticated \
+            --min-instances 1 --max-instances 1 --concurrency 1 --cpu-boost
+
+      - name: Self-heal Job (TODO — needs the Playwright capture image)
+        run: |
+          echo "self-heal Cloud Run Job: add a Playwright-based Dockerfile for services/selfheal,"
+          echo "then: gcloud run jobs deploy cancri-selfheal --image ... --region $GCP_REGION"

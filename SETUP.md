@@ -62,3 +62,55 @@ Or do it manually:
 - **ADR validation** (`adr-validate.yml`) — on changes under `docs/decisions/`.
 - **Security review** (`security-review.yml`) — on same-repo PRs (OAuth, deterministic FP-filtering).
 - **Triage** (`issue-triage.yml`) — auto-labels/comments new issues & PRs; checks for ADR-breaking requests; opens PRs only when a maintainer comments `@claude implement`.
+- **ls protocol replay regression** (`ls-replay-regression.yml`) — the self-heal merge gate; deterministic replay + bounded-surface check on `selfheal/*` PRs.
+
+## 4. Going live (Firebase + Vertex + Cloud Run + WIF)
+
+The codebase is complete and emulator-verified; bringing it up against real infrastructure is
+a one-time provisioning pass. None of this is needed to run locally (`scripts/dev.sh`).
+
+### 4a. Firebase project (irreversible region — decide first)
+
+1. Create a Firebase project on the **Blaze** plan (required: Spark blocks outbound egress to
+   ls-tc.de / Yahoo / Vertex, and Cloud Run / Scheduler / Secret Manager need Blaze).
+2. Create Firestore and Realtime Database in **`europe-west3`** (ADR-0001). **Firestore's
+   location is permanent** — get this right before any data exists.
+3. Enable **Auth** providers: Email/Password + Google; configure the OAuth consent screen and
+   authorized domains. Decide your invite-allowlist policy (this is an access-gated product).
+
+### 4b. Gemini via Vertex AI (no API key)
+
+- Enable the **Vertex AI API** in the project; grant the Functions runtime service account
+  `roles/aiplatform.user`. Confirm `gemini-3.5-flash` availability/quota in `europe-west3`.
+- Set `CANCRI_USE_VERTEX=true` for the deployed functions. There is no Gemini API key.
+
+### 4c. Workload Identity Federation (keyless deploy)
+
+`deploy.yml` authenticates via WIF — no stored JSON key. One-time setup:
+
+1. A **WIF pool + provider** with an attribute-condition pinning `assertion.repository == 't11z/cancri'`.
+2. A dedicated **deployer service account** (e.g. `cancri-deployer@<project>.iam.gserviceaccount.com`),
+   granted `roles/iam.workloadIdentityUser` for your repo's `principalSet`, plus least-privilege
+   deploy roles: `firebasehosting.admin`, `firebaserules.admin`, `firebasedatabase.admin`,
+   `cloudfunctions.admin`, `run.admin`, `artifactregistry.writer`, `cloudbuild.builds.editor`,
+   `iam.serviceAccountUser` (on the runtime SAs), `serviceusage.serviceUsageConsumer`.
+3. An **Artifact Registry** Docker repo named `cancri` in your region.
+4. Enable APIs: Cloud Run, Cloud Build, Artifact Registry, Secret Manager, Cloud Scheduler.
+5. Set repo **Variables**: `GCP_PROJECT_ID`, `GCP_REGION` (default `europe-west3`),
+   `WIF_PROVIDER`, `DEPLOYER_SA`, and finally `CANCRI_DEPLOY_ENABLED=true` to arm `deploy.yml`.
+
+`firebase-tools` deploys Hosting/Functions/rules; `gcloud` builds + deploys the feed-engine
+Cloud Run image (this split keeps the long-running deploy off the firebase-tools v15 ADC
+timeout, #10726).
+
+### 4d. The remaining live fills (flagged in code)
+
+- **Secret Manager** entries for the L&S handshake config (`LS_cid`, magic/idle/polling params,
+  origin) — never in the repo.
+- The first **L&S capture** (the self-heal Job, during trading hours) fills
+  `packages/ls-protocol/protocol.config.v1` with the real handshake bytes / frame offsets —
+  exactly what the replay gate verifies.
+- A **Playwright Dockerfile** for `services/selfheal`, then `gcloud run jobs deploy`.
+- A **logo provider** behind `resolveLogo`'s fetcher (monogram-only until then).
+- Branch-protect `main` to require the **replay-regression** check + ≥1 human review for
+  self-heal PRs.
