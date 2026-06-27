@@ -61,6 +61,44 @@ export function demoToPositions(inv: readonly DemoPosition[]): Position[] {
   }));
 }
 
+/** Per-conflict disposition when an added instrument is already in the book. */
+export type MergeChoice = "replace" | "add";
+
+/** Canonical identity for matching a holding across the book and an addition:
+ *  the ISIN when present, else the symbol (ADR-0007). */
+const keyOf = (p: Position): string => p.isin || p.symbol;
+
+/**
+ * Merge freshly-confirmed positions into the existing book. Adding holdings is
+ * not a one-shot onboarding step — it folds into the book the user already has.
+ * A genuinely new instrument is appended; for one already present (same ISIN,
+ * else symbol) the user's per-key choice disposes: `replace` takes the new
+ * values, `add` sums the quantity onto the existing position. Existing order is
+ * preserved (stable), new instruments follow. Pure — no app/DOM state.
+ */
+export function mergeInventory(
+  existing: readonly Position[],
+  additions: readonly Position[],
+  choice: (key: string) => MergeChoice,
+): Position[] {
+  const out: Position[] = existing.map((p) => ({ ...p }));
+  const index = new Map(out.map((p, i) => [keyOf(p), i] as const));
+  for (const add of additions) {
+    const k = keyOf(add);
+    const at = index.get(k);
+    const prior = at === undefined ? undefined : out[at];
+    if (at === undefined || prior === undefined) {
+      index.set(k, out.length);
+      out.push({ ...add });
+    } else if (choice(k) === "add") {
+      out[at] = { ...prior, quantity: prior.quantity + add.quantity };
+    } else {
+      out[at] = { ...add };
+    }
+  }
+  return out;
+}
+
 /** Re-enrich loaded Positions with a logo state for rendering. */
 export function positionsToDemo(positions: readonly Position[]): DemoPosition[] {
   return positions.map((p) => ({

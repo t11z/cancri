@@ -1,5 +1,5 @@
 import { SimSource, type SimScenario } from "@cancri/sim-source";
-import type { FeedStatus, ProposedPosition, Tick } from "@cancri/data-contracts";
+import type { FeedStatus, Position, ProposedPosition, Tick } from "@cancri/data-contracts";
 import {
   emptyHot,
   SPARK_LEN,
@@ -9,7 +9,7 @@ import {
   type Screen,
 } from "./state.js";
 import { buildDemoInventory } from "./fixtures.js";
-import { positionsToDemo, proposalToPositions, simSeedsFromInventory } from "./inventory.js";
+import { positionsToDemo, simSeedsFromInventory } from "./inventory.js";
 import { seedSeries } from "./sparkline.js";
 import { onAuth, signInGoogle, signOutUser, type User } from "./auth.js";
 import { db } from "./firebase.js";
@@ -185,9 +185,10 @@ export class App {
   }
 
   /** Confirm "lock inventory & go live": persist the confirmed book server-side
-   *  (with re-validation), then stream. */
-  async confirmAndGoLive(): Promise<void> {
-    const positions = proposalToPositions(this.proposal);
+   *  (with re-validation), then stream. The caller passes the full intended book
+   *  — for an add, that is the existing book merged with the new holdings (the
+   *  confirm screen resolves any per-instrument conflicts first). */
+  async confirmAndGoLive(positions: readonly Position[]): Promise<void> {
     try {
       await callConfirm(positions);
     } catch {

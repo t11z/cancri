@@ -101,7 +101,7 @@
 
   <section class="wrap" style="padding-top: 56px;">
     <h2>What it is</h2>
-    <p class="lead">You describe your holdings in plain language (or drop a CSV / Excel), an LLM normalises them into a
+    <p class="lead">You describe your holdings in plain language (or drop a CSV / Excel), an LLM reads them into a
       confirmed inventory, and a live data layer keeps the numbers moving — flashing mint up, rose down, with a
       sparkline that draws itself on every tick. It is <strong>read-only</strong>: no orders, no trading. Just the
       truth about your book, beautifully.</p>
@@ -128,14 +128,14 @@
 
     <h2 id="architecture">Architecture at a glance</h2>
     <p class="muted">Every architecture decision is recorded as a
-      <a href="https://github.com/t11z/cancri/tree/main/docs/decisions">Structured MADR</a> (ADR-0001 … ADR-0011).
+      <a href="https://github.com/t11z/cancri/tree/main/docs/decisions">Structured MADR</a> (ADR-0001 … ADR-0013).
       The deeper walkthrough lives on the <a href="maintaining.html">maintaining</a> page.</p>
     <div class="code">
       <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">system map</span></div>
 <pre><code><span class="c-dim">browser (Firebase Hosting)</span>  vanilla-TS terminal · single rAF loop · subscribes to ticks only
         │ reads /quotes,/feed (RTDB, client read-only)   │ callable · Auth + Firestore (the book)
         ▼                                                ▼
-<span class="c-net">Realtime Database</span>  /quotes/{isin} · /feed/status    <span class="c-llm">Cloud Functions</span>  normalize · confirm · logo (Gemini/Vertex, IAM)
+<span class="c-net">Realtime Database</span>  /quotes/{isin} · /feed/status    <span class="c-llm">Cloud Functions</span>  intake · confirm · logo (Gemini/Vertex, IAM)
         ▲ sole writer (Admin SDK)
 <span class="c-ok">Cloud Run: feed-engine</span> (always-on)  FeedManager · SanityOracle · degradation FSM
         ├─ <span class="c-ok">L&amp;S</span> (primary, real-time · ls-protocol break surface)
