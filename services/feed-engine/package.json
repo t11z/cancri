@@ -1,0 +1,27 @@
+{
+  "name": "@cancri/feed-engine",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Always-on Cloud Run service: L&S (+Yahoo) taps, FSM, sole RTDB tick writer (ADR-0002/0003/0005).",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@cancri/data-contracts": "workspace:*",
+    "firebase-admin": "^14.1.0",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.5.13",
+    "esbuild": "^0.28.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}

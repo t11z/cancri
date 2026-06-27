@@ -1,12 +1,13 @@
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import { connectAuthEmulator, getAuth, type Auth } from "firebase/auth";
 import { connectFirestoreEmulator, getFirestore, type Firestore } from "firebase/firestore";
+import { connectDatabaseEmulator, getDatabase, type Database } from "firebase/database";
 
 /**
  * Firebase client init (ADR-0004). In dev / emulator mode the SDK is pointed at
  * the local Emulator Suite; real config comes from VITE_FIREBASE_* env at deploy.
- * The web client only ever touches Auth + Firestore here; RTDB (quotes) arrives
- * with the live feed in Phase 4.
+ * Auth + Firestore (the book) plus Realtime Database (the tick wire, ADR-0005):
+ * the client only ever READS /quotes + /feed/status from RTDB.
  */
 const env = import.meta.env;
 const useEmulator = (env.VITE_USE_EMULATOR ?? (env.DEV ? "true" : "false")) === "true";
@@ -16,14 +17,18 @@ const firebaseConfig = {
   authDomain: env.VITE_FIREBASE_AUTH_DOMAIN ?? "demo-cancri.firebaseapp.com",
   projectId: env.VITE_FIREBASE_PROJECT_ID ?? "demo-cancri",
   appId: env.VITE_FIREBASE_APP_ID ?? "demo-app",
+  databaseURL:
+    env.VITE_FIREBASE_DATABASE_URL ?? "https://demo-cancri-default-rtdb.europe-west1.firebasedatabase.app",
 };
 
 export const app: FirebaseApp = initializeApp(firebaseConfig);
 export const auth: Auth = getAuth(app);
 export const db: Firestore = getFirestore(app);
+export const rtdb: Database = getDatabase(app);
 
 if (useEmulator) {
   const host = env.VITE_EMULATOR_HOST ?? "127.0.0.1";
   connectAuthEmulator(auth, `http://${host}:9099`, { disableWarnings: true });
   connectFirestoreEmulator(db, host, 8080);
+  connectDatabaseEmulator(rtdb, host, 9000);
 }
