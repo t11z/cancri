@@ -197,6 +197,13 @@ echo "projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github-p
    the *Secrets* tab resolves to empty and the deploy fails at the WIF auth step):
    `GCP_PROJECT_ID`, `GCP_REGION` (default `europe-west1`), `WIF_PROVIDER`, `DEPLOYER_SA`,
    and finally `CANCRI_DEPLOY_ENABLED=true` to arm `deploy.yml`.
+6. Set the **web client config** as repo Variables too — Vite bakes these into the client
+   bundle at build time (they are public, protected by security rules; not secrets). Get the
+   values from **Firebase Console → Project settings → Your apps → Web app SDK config**:
+   `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`,
+   `VITE_FIREBASE_APP_ID`, and `VITE_FIREBASE_DATABASE_URL`
+   (`https://<project>-default-rtdb.europe-west1.firebasedatabase.app`). Without them the
+   deployed app falls back to the `demo-cancri` config in `apps/web/src/firebase.ts`.
 
 `firebase-tools` deploys Hosting/Functions/rules; `gcloud` builds + deploys the feed-engine
 Cloud Run image (this split keeps the long-running deploy off the firebase-tools v15 ADC
