@@ -6,7 +6,8 @@ packages:
   - "tools/*"
 
 # pnpm 11 reads dependency build-script approvals here (a map, not a list).
-# These two have postinstall scripts the Firebase SDK needs.
+# Dependencies allowed to run install/postinstall scripts.
 allowBuilds:
   "@firebase/util": true
+  "@google/genai": true
   protobufjs: true
