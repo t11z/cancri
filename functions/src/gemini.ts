@@ -1,3 +1,5 @@
+import { HttpsError } from "firebase-functions/v2/https";
+import * as logger from "firebase-functions/logger";
 import { z } from "zod";
 
 /**
@@ -61,13 +63,48 @@ class VertexGemini implements GeminiClient {
 
   async normalise(text: string): Promise<RawProposal[]> {
     const ai = await this.getClient();
-    const res = await ai.models.generateContent({
-      model: this.model,
-      contents: `${SYSTEM_PROMPT}\n\nINPUT:\n${text}`,
-      config: { responseMimeType: "application/json", temperature: 0 },
-    });
-    const raw = res.text ?? "[]";
-    return RawProposalArray.parse(JSON.parse(raw));
+
+    // The model call: reachability/region/IAM failures land here. ADR-0008 says a
+    // degraded intake surfaces honestly — so we log the real cause server-side and
+    // re-raise as a typed HttpsError ("unavailable") instead of letting a raw throw
+    // become an opaque `internal`/HTTP 500 with no signal for the caller.
+    let raw: string;
+    try {
+      const res = await ai.models.generateContent({
+        model: this.model,
+        contents: `${SYSTEM_PROMPT}\n\nINPUT:\n${text}`,
+        config: { responseMimeType: "application/json", temperature: 0 },
+      });
+      raw = res.text ?? "[]";
+    } catch (cause) {
+      logger.error("Vertex generateContent failed", {
+        model: this.model,
+        project: this.project,
+        location: this.location,
+        error: cause instanceof Error ? cause.message : String(cause),
+      });
+      throw new HttpsError(
+        "unavailable",
+        "the portfolio reader is temporarily unreachable — please try again in a moment",
+      );
+    }
+
+    // The model replied, but not with the shape we asked for (bad JSON, or JSON
+    // that fails the schema). That's a model-output fault, not user input — flag it
+    // distinctly so it never silently produces an empty or malformed book.
+    try {
+      return RawProposalArray.parse(JSON.parse(raw));
+    } catch (cause) {
+      logger.error("Vertex returned an unparseable proposal", {
+        model: this.model,
+        error: cause instanceof Error ? cause.message : String(cause),
+        sample: raw.slice(0, 500),
+      });
+      throw new HttpsError(
+        "internal",
+        "the portfolio reader returned an unexpected response — please try again",
+      );
+    }
   }
 }
 
