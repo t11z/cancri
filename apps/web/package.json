@@ -1,0 +1,24 @@
+{
+  "name": "@cancri/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "cancri terminal SPA (Firebase Hosting target). Phase 1: handover-faithful UI driven by a SourceAdapter.",
+  "scripts": {
+    "tokens": "node ../../tools/tokens/generate.mjs",
+    "predev": "pnpm run tokens",
+    "dev": "vite",
+    "prebuild": "pnpm run tokens",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "pnpm run tokens && tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@cancri/data-contracts": "workspace:*",
+    "@cancri/sim-source": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vite": "^8.1.0"
+  }
+}

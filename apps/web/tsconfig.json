@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["vite/client"],
+    "paths": {
+      "@cancri/data-contracts": ["../../packages/data-contracts/src/index.ts"],
+      "@cancri/sim-source": ["../../packages/sim-source/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}

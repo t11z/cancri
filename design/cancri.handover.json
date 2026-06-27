@@ -1,0 +1,275 @@
+{
+  "$schema": "cancri-handover/v1",
+  "meta": {
+    "product": "cancri",
+    "tagline": "live-portfolio-terminal",
+    "version": "0.4",
+    "step": "1/2 — design & handover (implementation by Claude Code follows)",
+    "principle": "A terminal you leave open. Colour and motion carry information (direction, freshness, activity), never decoration. The terminal tells the truth about its own data: live vs delayed is always visible.",
+    "stack_decisions_left_open": ["frontend framework", "animation lib", "charting/sparkline tech", "terminal-UI tech"],
+    "stack_constraints_given": ["delivery: Firebase Hosting", "auth: Firebase Auth (auth-gate required)", "LLM: Gemini (chat + file normalisation)"],
+    "implementation_neutral": true,
+    "reference_design": "../Cancri Terminal.dc.html (interactive, all screens + secondary states via review bar)"
+  },
+
+  "tokens": {
+    "color": {
+      "comment": "Cool near-black ground. Neon accents only ever encode meaning. Hex incl. 2-digit alpha suffixes used in the reference (e.g. #36f9d066 = 40% alpha).",
+      "bg": {
+        "app": "#05070b",
+        "surface": "#070a0f",
+        "panel": "#0b0f16",
+        "panel_raised": "#0d121b",
+        "input": "#070a0f",
+        "row_alt_flagged": "#1a1505"
+      },
+      "line": { "hairline": "#10151e", "border": "#1a2130", "border_strong": "#222b3b" },
+      "text": { "primary": "#eef3fa", "body": "#d7dee8", "muted": "#9aa6b4", "dim": "#6b7787", "faint": "#39424f", "ghost": "#222b3b" },
+      "accent": {
+        "up":      { "hex": "#36f9d0", "role": "positive / gain / LIVE freshness", "glow": "#36f9d066" },
+        "down":    { "hex": "#ff5277", "role": "negative / loss", "glow": "#ff527766" },
+        "info":    { "hex": "#7b5cff", "role": "brand / source / LLM / neutral-secondary", "glow": "#7b5cff66" },
+        "warn":    { "hex": "#ffd23f", "role": "DELAYED freshness / degraded / review-flag", "glow": "#ffd23f66" },
+        "cyan":    { "hex": "#5ec6ff", "role": "symbols / user voice / file types", "glow": "#5ec6ff66" }
+      },
+      "rules": [
+        "Direction is NEVER colour-only: up = up.hex + ▲ + '+' sign; down = down.hex + ▼ + '−' sign.",
+        "LIVE = accent.up. DELAYED = accent.warn. No other colour may mean freshness.",
+        "Glow = soft text-shadow on KEY numbers/dots only (0 0 14–18px, accent at ~30–40% alpha). Never glow body text.",
+        "No CRT scanlines, flicker or bloom. Clean surfaces.",
+        "Per-instrument logo/monogram accent is decorative identity only and is drawn from the `accent_palette`, never from up/down/warn."
+      ],
+      "accent_palette": ["#7b5cff","#36f9d0","#5ec6ff","#ff5277","#ffd23f","#ff8a4c","#4cd4ff","#b06cff","#36d39b","#ff6ba8","#5b8cff","#46c8a8"]
+    },
+
+    "typography": {
+      "family_primary": "JetBrains Mono",
+      "family_alternates": ["IBM Plex Mono (warmer, more humanist)", "Space Mono (more eccentric/nerdy)"],
+      "fallback_stack": "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
+      "everything_monospace": true,
+      "features": "font-variant-numeric: tabular-nums on ALL numeric cells (prices, qty, values, %).",
+      "scale_px": {
+        "display_total": 23, "ticker": 13, "price": 13, "body": 12.5, "cell": 12, "label": 11,
+        "micro_label": 10, "tag": 9.5, "letterspaced_caps": 10
+      },
+      "weights": { "regular": 400, "medium": 500, "semibold": 600, "bold": 700, "black": 800 },
+      "letter_spacing": { "brand_caps": "2px", "section_caps": "1–1.5px", "tags": "0.5–1px" },
+      "casing": "Section labels and tags are lowercase or UPPER MONO CAPS; terminal voice prefers lowercase prose."
+    },
+
+    "spacing_px": { "xs": 4, "sm": 6, "md": 10, "lg": 14, "xl": 18, "2xl": 22, "row_pad_y": 9, "row_pad_x": 18, "panel_pad": 22 },
+    "radius_px": { "tile": 7, "control": 6, "input": 7, "panel": 10, "card": 12, "pill": 999, "dot": "50%" },
+    "logo_tile_px": 28,
+    "z": { "dashboard": 2, "onboard_confirm": 3, "auth": 4, "boot": 5, "reconnect_overlay": 6, "review_bar": 40 },
+
+    "motion": {
+      "duration_ms": { "flash": 650, "number_roll": "rAF tween, ease factor 0.16/frame (~400ms settle)", "boot_line": 350, "boot_stagger": 340, "pulse_live": 1800, "pulse_delayed": 2600, "shimmer": 1100, "spinner": 800, "flash_bg_transition": 150, "caret_blink": 1000 },
+      "easing": { "standard": "ease-in-out", "enter": "ease (cubic ease-out feel)", "tween": "exponential approach (lerp factor 0.16)", "spinner": "linear", "shimmer": "linear" },
+      "reduced_motion_overrides": "see motion_spec.reduced_motion"
+    }
+  },
+
+  "screen_flow": {
+    "primary_path": ["boot", "auth", "onboard", "confirm", "dash"],
+    "transitions": {
+      "boot→auth": "auto after boot sequence completes (~2.7s; instant under reduced-motion)",
+      "auth→onboard": "on connect (email/pass or Google→Firebase)",
+      "onboard→confirm": "on 'parse ↵' or file drop — both routes converge on the same normalisation step",
+      "confirm→dash": "on 'lock inventory & go live' (explicit human approval; nothing streams before)",
+      "confirm→onboard": "‹ back to intake",
+      "dash(empty)→onboard": "'feed the terminal' CTA"
+    },
+    "secondary_states_on_dash": ["normal", "degraded", "reconnect", "closed", "empty", "error"],
+    "review_affordance": "Reference build exposes a fixed '// review' bar to jump to any screen/state. Implementation: NOT shipped to users — it is a design-handoff navigator only."
+  },
+
+  "components": [
+    {
+      "id": "BootSequence",
+      "states": ["streaming (lines append staggered)", "complete (caret: 'mounting workspace…')"],
+      "spec": "6 staggered log lines, each [tag] message [+ ok]. Tags: [ok] dim-faint, message dim, ok-suffix in accent.up. Blinking block caret in accent.up below. Auto-advances to auth.",
+      "data_contract": { "lines": "Array<{tag:string, text:string, ok?:string}>", "step": "int (0..6) — how many lines revealed" }
+    },
+    {
+      "id": "AuthGate",
+      "states": ["idle", "submitting", "error(optional)"],
+      "spec": "Centred terminal 'secure shell' card with traffic-light dots. Brand CANCRI (info), subtitle, '> identify yourself' prompt. user@ row, passphrase row (masked + caret), primary [ ↵ connect ] (accent.up filled), secondary 'continue with Google → firebase' (info outline). Footer: live pulse dot + 'secured by firebase auth'.",
+      "data_contract": { "authProvider": "'password' | 'google'", "onConnect": "() => void", "error?": "string" }
+    },
+    {
+      "id": "OnboardingIntake",
+      "states": ["empty", "chatting", "file-hover", "parsing"],
+      "spec": "Two columns. Left: Gemini chat thread (user bubbles cyan-tinted right, gemini bubbles violet-tinted left) + input row with > prompt, caret, 'parse ↵'. Right: dashed dropzone (CSV/XLSX/paste), ⤓ glyph in info, reassurance copy, sample file chips. Both routes → normalisation.",
+      "data_contract": {
+        "messages": "Array<{role:'user'|'bot', text:string}>",
+        "acceptedFiles": "['.csv','.xlsx','.xls','text/plain']",
+        "onParse": "(input: string | File) => NormalisationProposal"
+      }
+    },
+    {
+      "id": "ConfirmInventory",
+      "states": ["proposed", "row-flagged (low confidence)", "edited", "locked"],
+      "spec": "Editable terminal table. Columns: confidence-dot | INSTRUMENT | SYMBOL (cyan) | QUANTITY (editable input) | CONFIDENCE (bar + label) | SOURCE. Confidence colour: ≥0.9 up, 0.7–0.9 info, <0.7 warn + row gets warn-tinted bg + 'review' label. Primary '✓ lock inventory & go live'; secondary back. Header line: 'gemini parsed N instruments · M flagged for your eye'. Voice: 'the machine proposes — you dispose.'",
+      "data_contract": {
+        "proposal": "Array<ProposedPosition>",
+        "ProposedPosition": { "name": "string", "symbol": "string", "quantity": "number", "confidence": "number 0..1", "source": "string", "uncertaintyNote?": "string" },
+        "onEdit": "(index:number, patch:Partial<ProposedPosition>) => void",
+        "onConfirm": "(positions: ProposedPosition[]) => void"
+      }
+    },
+    {
+      "id": "DashboardHeader",
+      "states": ["live", "delayed(degraded)", "closed"],
+      "spec": "Bar: CANCRI brand + LPT badge | PORTFOLIO VALUE (23px) | DAY CHANGE (arrow+abs+pct, up/down colour) | spacer | connection master (pulsing dot + LIVE/DELAYED + sub) | MARKET·ET + clock. Aggregate recomputed from positions.",
+      "data_contract": {
+        "Aggregate": {
+          "totalValue": "number",
+          "dayChangeAbs": "number",
+          "dayChangePct": "number",
+          "connection": "'live' | 'delayed'",
+          "marketState": "'open' | 'closed'",
+          "clockET": "string HH:MM:SS"
+        }
+      }
+    },
+    {
+      "id": "AssetRow",
+      "states": ["normal", "tick-up (flash)", "tick-down (flash)", "delayed", "frozen(market-closed)", "logo:loading", "logo:resolved", "logo:monogram"],
+      "spec": "Grid: logo(28) | INSTRUMENT(ticker primary + name dim) | QTY | LAST (tabular, flash bg) | DAY Δ (arrow + signed abs) | DAY % (signed) | 5M TREND (live sparkline, head dot) | POSITION ($ value) | FEED (freshness dot + LIVE/DELAYED). Up/down colour applies to Δ, %, sparkline.",
+      "data_contract": {
+        "AssetRowData": {
+          "identity": "string (stable symbol/id, e.g. 'AAPL', 'BTC')",
+          "displayName": "string",
+          "logoState": "'loading' | 'resolved' | 'monogram'",
+          "logoUrl?": "string (when resolved)",
+          "quantity": "number",
+          "lastPrice": "number",
+          "prevClose": "number",
+          "dayChangeAbs": "number (derived: lastPrice - prevClose)",
+          "dayChangePct": "number (derived)",
+          "positionValue": "number (derived: quantity * lastPrice)",
+          "sparklineSeries": "number[] (rolling, ~48 pts; append on tick, cap length)",
+          "freshness": "'live' | 'delayed'",
+          "source": "string (e.g. 'NASDAQ','NYSE','COINBASE','KRAKEN')",
+          "accent": "string hex (decorative identity colour from accent_palette)"
+        }
+      }
+    },
+    {
+      "id": "Sparkline",
+      "states": ["live-draw (appends point on tick)", "flat/empty"],
+      "spec": "148×32 viewport, 4px pad, normalise to series min/max. Stroke 1.5 (up/down colour), faint area fill (#…14 alpha), head circle r=2 at latest point. Redraws on new tick.",
+      "data_contract": { "series": "number[]", "color": "up|down by dayChange sign" }
+    },
+    {
+      "id": "FreshnessIndicator",
+      "states": ["live", "delayed"],
+      "spec": "Dot + label. LIVE = up colour, steady breathing pulse (pulseLive 1.8s, scale .85→1.15). DELAYED = warn colour, slower off-beat pulse (pulseDelayed 2.6s, opacity ramp only) + always-visible 'DELAYED' text. Two visually distinct languages.",
+      "data_contract": { "freshness": "'live' | 'delayed'" }
+    },
+    {
+      "id": "LogoTile",
+      "states": ["loading", "resolved", "monogram"],
+      "spec": "28×28, radius 7. loading = shimmer sweep over panel gradient. resolved = network logo, object-fit contain, on accent-tinted gradient tile w/ matching border. monogram = generated tile: panel bg, 1px accent border @40%, 1–3-char initials in accent, bold.",
+      "data_contract": { "logoState": "'loading'|'resolved'|'monogram'", "logoUrl?": "string", "initials": "ticker.slice(0, len>3?3:len)", "accent": "hex" }
+    },
+    {
+      "id": "StateBanner",
+      "states": ["degraded", "market-closed", "hidden"],
+      "spec": "Full-width strip under header. degraded = warn bg/text + dot, copy about delayed quotes. closed = neutral panel bg + info dot, 'last close' copy.",
+      "data_contract": { "kind": "'degraded'|'closed'|null" }
+    },
+    {
+      "id": "ReconnectOverlay",
+      "states": ["visible"],
+      "spec": "Semi-opaque blur over dashboard (it stays warm/visible behind). Spinner (warn), 'reconnecting to primary feed…', progress blocks + 'attempt n/5', 'holding last quotes'. On give-up → degraded.",
+      "data_contract": { "attempt": "number", "maxAttempts": "number" }
+    },
+    {
+      "id": "DashboardFooter",
+      "states": ["live", "degraded"],
+      "spec": "Counts: N live (up) · M delayed (warn) · positions · ticks · latency(ms) · feed note.",
+      "data_contract": { "liveCount": "int", "delayedCount": "int", "positions": "int", "ticks": "int", "latencyMs": "int", "feedNote": "string" }
+    },
+    {
+      "id": "EmptyState",
+      "states": ["visible"],
+      "spec": "Centred. ▢ glyph, 'no instruments loaded. the terminal is hungry.', primary CTA '[ + feed the terminal ]' → onboarding.",
+      "data_contract": {}
+    },
+    {
+      "id": "ErrorState",
+      "states": ["visible"],
+      "spec": "Centred. ⚠ (down colour, glow), 'feed error — could not reach primary source.', technical sub-line (socket code, last-good age), '↻ retry handshake' (warn) → normal.",
+      "data_contract": { "code?": "string", "lastGoodAgo?": "string" }
+    }
+  ],
+
+  "motion_spec": {
+    "tick_flash": { "trigger": "lastPrice changes", "target": "LAST cell background", "duration_ms": 650, "easing": "linear alpha decay (1→0)", "choreography": "directional tint — up→#36f9d0 @16%, down→#ff5277 @16% — fades to transparent over 650ms. Driven per-frame by rAF, not per-element CSS transition.", "color_coded": true },
+    "number_roll": { "trigger": "lastPrice / positionValue / aggregate update", "target": "displayed numeric value", "technique": "displayValue lerps toward target (factor 0.16/frame), tabular-nums prevents width jitter", "easing": "exponential approach", "settle_ms": "~400", "note": "no hard snapping; odometer feel" },
+    "sparkline_live_draw": { "trigger": "new tick appended", "target": "5M TREND polyline + head dot", "choreography": "series array shifts+pushes, polyline + head recompute and redraw on next frame; line visibly grows/shifts left" },
+    "logo_load": { "trigger": "logo fetch lifecycle", "sequence": "placeholder/shimmer → (resolved logo) OR (monogram fallback)", "shimmer_ms": 1100, "easing": "linear sweep" },
+    "freshness_pulse": { "trigger": "continuous while mounted", "live": "pulseLive 1800ms ease-in-out, scale .85↔1.15 + opacity .35↔1 (calm 'connection alive' breathing)", "delayed": "pulseDelayed 2600ms, opacity ramp only, brief peak (off-beat, sluggish — reads as 'not realtime')", "intent": "live and delayed must be distinguishable by RHYTHM as well as colour" },
+    "boot_sequence": { "trigger": "app load", "choreography": "6 log lines stagger in at 340ms each (bootline 350ms ease, translateY 3px→0 + fade), then caret → auto-advance to auth ~700ms later", "total_ms": "~2740" },
+    "connection_transition_primary_to_fallback": { "trigger": "primary feed lost", "choreography": "dashboard does NOT blank — header connection flips LIVE→DELAYED, master dot recolours up→warn and switches to pulseDelayed, degraded banner slides in, every row freshness→delayed, latency value climbs. Reverse on recovery.", "principle": "honesty over blackout" },
+    "reduced_motion": {
+      "respect": "prefers-reduced-motion: reduce AND in-app MOTION toggle",
+      "overrides": [
+        "number_roll: snap instantly (lerp factor → 1)",
+        "tick_flash: disabled (alpha stays 0)",
+        "freshness_pulse: static dots, no animation (colour + label still distinguish live/delayed)",
+        "shimmer / spinner / boot stagger: disabled or instant; boot jumps to auth in ~250ms",
+        "sparkline: still updates value, but no draw-in flourish"
+      ]
+    }
+  },
+
+  "microcopy": {
+    "voice": "Nerdy and technical, but clarity beats the gag. Lowercase prose, mono caps for labels. The terminal is honest about its data.",
+    "boot": ["[ok] cancri // live-portfolio-terminal — online", "[net] establishing socket → primary feed — handshake", "[net] subscribing instruments · L1 quotes", "[llm] gemini intake channel ready", "[ok] freshness monitor armed · live/delayed", "[ok] terminal ready ✓", "caret: booting… → mounting workspace…"],
+    "auth": { "title": "CANCRI", "subtitle": "live-portfolio-terminal · v0.4", "prompt": "> identify yourself to mount your book", "primary": "[ ↵ connect ]", "google": "continue with Google → firebase", "footer": "secured by firebase auth · session encrypted" },
+    "onboarding": { "heading": "onboarding · feed the terminal", "step": "step 1 — describe or drop", "chat_section": "— gemini · portfolio intake —", "input_placeholder": "e.g. 12 AAPL, 0.5 BTC, 100 msft, ~30 nvidia…", "parse_btn": "parse ↵", "drop_section": "— or drop a file —", "drop_main": "drop CSV · XLSX · or paste text", "drop_reassure": "messy is fine. the machine reconciles tickers, quantities & names — you confirm before anything goes live.", "handoff": "↳ next: gemini normalises your input into a structured inventory. the machine proposes — you dispose." },
+    "confirm": { "heading": "proposed inventory · review & confirm", "step": "step 2 — the machine proposes, you dispose", "summary": "gemini parsed {N} instruments · {M} flagged for your eye. edit anything, then lock it in.", "flag_label": "review", "primary": "✓ lock inventory & go live", "secondary": "‹ back to intake", "reassure": "nothing streams until you confirm." },
+    "dashboard": { "labels": { "value": "PORTFOLIO VALUE", "change": "DAY CHANGE", "market": "MARKET · ET", "market_closed": "CLOSED · ET", "cols": ["INSTRUMENT","QTY","LAST","DAY Δ","DAY %","5M TREND","POSITION","FEED"] }, "conn_live": "LIVE / primary · realtime", "conn_delayed": "DELAYED / fallback · ~15m lag", "freshness": { "live": "LIVE", "delayed": "DELAYED" }, "footer": "{N} live · {M} delayed · {P} positions · ticks {t} · latency {ms}ms · {feedNote}" },
+    "banners": { "degraded": "PRIMARY SOURCE LOST — showing DELAYED quotes. dashboard stays warm; values may lag ~15 min.", "closed": "MARKET CLOSED — last close shown. live ticks resume at next open (09:30 ET)." },
+    "empty": { "line": "no instruments loaded. the terminal is hungry.", "cta": "[ + feed the terminal ]" },
+    "error": { "line": "feed error — could not reach primary source.", "sub": "socket closed · code 1006 · last good tick 00:41 ago", "cta": "↻ retry handshake" },
+    "reconnect": { "line": "reconnecting to primary feed…", "progress": "attempt {n}/5", "sub": "holding last quotes · dashboard stays warm" }
+  },
+
+  "asset_specs": {
+    "logo": {
+      "fetch": "Resolve per `identity` from a logo provider; cache by symbol. While in-flight → loading. On 404/failure → monogram.",
+      "tile_px": 28, "radius_px": 7, "image_fit": "contain, with small inset",
+      "resolved_tile": "accent-tinted gradient bg (accent @ ~18%→8%) + 1px accent @34% border; logo centered",
+      "border_strong": "#1a2130 fallback border"
+    },
+    "monogram": {
+      "when": "logo not found",
+      "initials_rule": "ticker.slice(0, length>3 ? 3 : length), uppercase",
+      "tile": "panel bg (#0d121b), 1px border accent @40%, initials in accent, weight 800, ~10px, letter-spacing .3px",
+      "accent_selection": "stable per identity — index into accent_palette by hash of identity (NOT up/down/warn)"
+    },
+    "shimmer_placeholder": "28×28 radius 7, linear-gradient(90deg,#0d121b,#1a2130,#0d121b) sweeping at 1100ms linear over a 240px band"
+  },
+
+  "accessibility": {
+    "contrast": "Body text #d7dee8 and primary #eef3fa on #070a0f exceed WCAG AA. Accent text used at ≥12px semibold on dark; avoid accent-on-accent.",
+    "direction_not_colour_only": "Every gain/loss carries ▲/▼ + signed value in addition to colour. Sparkline + dot are reinforcement, not sole signal.",
+    "freshness_not_colour_only": "LIVE/DELAYED always rendered as TEXT plus a distinct pulse rhythm, not colour alone.",
+    "reduced_motion": "Honour prefers-reduced-motion and the in-app MOTION toggle — see motion_spec.reduced_motion. Calmer variant of every animation; information parity preserved.",
+    "keyboard": "Core flows operable by keyboard: auth submit (Enter), intake input + parse, confirm table qty edit + lock, retry/CTAs are real buttons. Visible focus ring required (suggest 2px accent.cyan outline).",
+    "tabular_numbers": "All numeric columns use tabular-nums to prevent reflow jitter during rolling updates (also aids low-vision scanning)."
+  },
+
+  "derivations": {
+    "dayChangeAbs": "lastPrice - prevClose",
+    "dayChangePct": "(lastPrice - prevClose) / prevClose * 100",
+    "positionValue": "quantity * lastPrice",
+    "aggregate.totalValue": "Σ positionValue",
+    "aggregate.dayChangeAbs": "Σ quantity * (lastPrice - prevClose)",
+    "aggregate.dayChangePct": "aggregate.dayChangeAbs / Σ(quantity * prevClose) * 100",
+    "sparkline.color": "up if dayChangeAbs ≥ 0 else down"
+  }
+}

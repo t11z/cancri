@@ -1,0 +1,16 @@
+{
+  "name": "@cancri/data-contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The single shared seam: Tick, SourceAdapter, freshness, feed status, inventory (ADR-0006).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
