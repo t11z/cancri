@@ -139,14 +139,14 @@ export FIREBASE_TOKEN="$(firebase login:ci)"
       <h3 id="firebase">1 · Firebase project <span class="pill down">irreversible region</span></h3>
       <ol class="steps">
         <li><h4>Create a Blaze-plan project</h4><p>Spark blocks the outbound egress to ls-tc.de / Yahoo / Vertex, and Cloud Run / Scheduler / Secret Manager need Blaze.</p></li>
-        <li><h4>Firestore + RTDB in <code>europe-west3</code></h4><p>ADR-0001. <strong>Firestore's location is permanent</strong> — get it right before any data exists.</p></li>
+        <li><h4>Firestore + RTDB in <code>europe-west1</code></h4><p>ADR-0001. <strong>Firestore's location is permanent</strong> — get it right before any data exists. RTDB is offered only in <code>us-central1</code>, <code>europe-west1</code>, <code>asia-southeast1</code> — not <code>europe-west3</code>.</p></li>
         <li><h4>Enable Auth providers</h4><p>Email/Password + Google; configure the consent screen and authorized domains. Decide your invite-allowlist policy — this is an access-gated product.</p></li>
       </ol>
 
       <h3 id="vertex">2 · Gemini via Vertex AI <span class="pill up">no API key</span></h3>
       <ul class="clean">
         <li>Enable the <strong>Vertex AI API</strong>; grant the Functions runtime SA <code>roles/aiplatform.user</code>.</li>
-        <li>Confirm <code>gemini-3.5-flash</code> availability/quota in <code>europe-west3</code>.</li>
+        <li>Confirm <code>gemini-3.5-flash</code> availability/quota in <code>europe-west1</code>.</li>
         <li>Set <code>CANCRI_USE_VERTEX=true</code> for the deployed functions. There is <strong>no</strong> Gemini API key — access is via IAM.</li>
       </ul>
 
@@ -159,7 +159,7 @@ export FIREBASE_TOKEN="$(firebase login:ci)"
         <li><h4>Enable the APIs</h4><p>Cloud Run, Cloud Build, Artifact Registry, Secret Manager, Cloud Scheduler.</p></li>
         <li>
           <h4>Set repo Variables, then arm it</h4>
-          <p>Set <code>GCP_PROJECT_ID</code>, <code>GCP_REGION</code> (default <code>europe-west3</code>),
+          <p>Set <code>GCP_PROJECT_ID</code>, <code>GCP_REGION</code> (default <code>europe-west1</code>),
             <code>WIF_PROVIDER</code>, <code>DEPLOYER_SA</code> — and finally:</p>
           <div class="code">
             <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">arm the CI deploy</span><button class="copy">copy</button></div>

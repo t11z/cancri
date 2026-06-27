@@ -31,7 +31,7 @@ let uid: string;
 beforeAll(async () => {
   app = initializeApp({ apiKey: "demo", projectId: "demo-cancri" }, "callable-test");
   auth = getAuth(app);
-  fns = getFunctions(app, "europe-west3");
+  fns = getFunctions(app, "europe-west1");
   db = getFirestore(app);
   connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
   connectFunctionsEmulator(fns, "127.0.0.1", 5001);

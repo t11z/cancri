@@ -31,7 +31,7 @@ Frontmatter (title, description, type, category, tags, status, created, updated,
 
 | ID | Title | Status |
 |----|-------|--------|
-| [0001](0001-pin-region-europe-west3.md) | Pin all Firebase/GCP resources to europe-west3 (Frankfurt) | accepted |
+| [0001](0001-pin-region-europe-west1.md) | Pin all Firebase/GCP resources to europe-west1 (Belgium) | accepted |
 | [0002](0002-three-runtime-classes-execution-model.md) | Three runtime classes: Functions, always-on Cloud Run, browser Job | accepted |
 | [0003](0003-feed-engine-single-process-singleton.md) | One feed-engine process owns both sources; singleton, no HA initially | accepted |
 | [0004](0004-datastore-split-firestore-book-rtdb-wire.md) | Firestore is the book; Realtime Database is the wire | accepted |

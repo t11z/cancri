@@ -7,13 +7,13 @@ import { normaliseInventory } from "./normalize.js";
 import { noProviderFetcher, resolveLogo } from "./logo.js";
 
 /**
- * Callable Cloud Functions (2nd gen, ADR-0002/0008), pinned to europe-west3
+ * Callable Cloud Functions (2nd gen, ADR-0002/0008), pinned to europe-west1
  * (ADR-0001). Both require an authenticated caller; Gemini runs server-side with
  * no key in the client.
  */
 initializeApp();
 
-const REGION = "europe-west3";
+const REGION = "europe-west1";
 
 const NormalizeSchema = z.object({
   input: z.object({
