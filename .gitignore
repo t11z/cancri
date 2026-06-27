@@ -6,6 +6,7 @@ node_modules/
 dist/
 build/
 functions/lib/
+services/feed-engine/lib/
 *.tsbuildinfo
 
 # generated (regenerated from design/ by tools/tokens)

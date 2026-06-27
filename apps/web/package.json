@@ -20,6 +20,7 @@
     "firebase": "^12.15.0"
   },
   "devDependencies": {
+    "firebase-admin": "^14.1.0",
     "typescript": "^6.0.3",
     "vite": "^8.1.0",
     "vitest": "^4.1.9"
