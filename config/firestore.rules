@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// cancri — the book (ADR-0004). Firestore holds each user's private inventory,
+// drafts, and audit. The privacy boundary is "what you own": everything under
+// /users/{uid} is reachable only by that authenticated user. Default deny.
+//
+// Prices are NOT here — quotes live in Realtime Database as a public-to-signed-in
+// resource (ADR-0004/0005), governed by database.rules.json.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedInAs(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // A user's entire subtree: profile, inventory/current, drafts/*, audit/*.
+    match /users/{uid} {
+      allow read, write: if signedInAs(uid);
+
+      match /{document=**} {
+        allow read, write: if signedInAs(uid);
+      }
+    }
+
+    // Everything else: denied. (No rule = no access in Firestore.)
+  }
+}

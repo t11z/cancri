@@ -4,3 +4,9 @@ packages:
   - "functions"
   - "packages/*"
   - "tools/*"
+
+# pnpm 11 reads dependency build-script approvals here (a map, not a list).
+# These two have postinstall scripts the Firebase SDK needs.
+allowBuilds:
+  "@firebase/util": true
+  protobufjs: true
