@@ -106,13 +106,19 @@ gcloud services enable \
 # Firestore (native mode) — PERMANENT location:
 gcloud firestore databases create --location="$REGION"
 
-# Realtime Database default instance — PERMANENT location:
-firebase database:instances:create "${PROJECT_ID}-default-rtdb" \
-  --location "$RTDB_LOCATION" --project "$PROJECT_ID"
+# Realtime Database DEFAULT instance — PERMANENT location.
+# NOTE: `firebase database:instances:create` only creates *additional* instances;
+# it cannot create the first/default one and errors with
+# "run firebase init database". Create the default instance the once via the CLI
+# wizard (pick "europe-west1 (Belgium)" when prompted)...
+firebase init database --project "$PROJECT_ID"
+# ...or in the Firebase Console → Build → Realtime Database → Create Database →
+# region "Belgium (europe-west1)".
 # → URL: https://<PROJECT_ID>-default-rtdb.europe-west1.firebasedatabase.app
 #   set this as the VITE_FIREBASE_DATABASE_URL build var for apps/web.
 ```
 
+`$RTDB_LOCATION` is still the location you must choose in that wizard/console step.
 Auth providers are configured in the **Firebase Console → Authentication** (no clean CLI).
 
 ### 4b. Gemini via Vertex AI (no API key)
