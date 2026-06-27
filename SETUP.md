@@ -96,10 +96,16 @@ gcloud config set project "$PROJECT_ID"
 gcloud billing accounts list
 gcloud billing projects link "$PROJECT_ID" --billing-account=XXXXXX-XXXXXX-XXXXXX
 
-# Enable the APIs the stack needs:
+# Enable the APIs the stack needs, UP FRONT as Owner. firebase deploy tries to
+# auto-enable missing APIs, but the least-privilege deployer SA (§4c) can't, so it
+# fails with "Permissions denied enabling <api>". Enabling them here avoids that.
+# eventarc + pubsub are required by 2nd-gen Cloud Functions (they deploy on Cloud
+# Run via Eventarc); cloudbilling/storage/logging are checked/used by the deploy.
 gcloud services enable \
   firestore.googleapis.com firebasedatabase.googleapis.com \
   cloudfunctions.googleapis.com run.googleapis.com cloudbuild.googleapis.com \
+  eventarc.googleapis.com pubsub.googleapis.com \
+  cloudbilling.googleapis.com storage.googleapis.com logging.googleapis.com \
   artifactregistry.googleapis.com secretmanager.googleapis.com \
   cloudscheduler.googleapis.com aiplatform.googleapis.com
 
