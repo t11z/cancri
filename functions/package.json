@@ -13,7 +13,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@cancri/data-contracts": "workspace:*",
     "@google/genai": "^2.10.0",
     "exceljs": "^4.4.0",
     "firebase-admin": "^14.1.0",
