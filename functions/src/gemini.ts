@@ -127,13 +127,38 @@ export class MockGemini implements GeminiClient {
   }
 }
 
+/**
+ * Wraps the primary client with the deterministic mock as a safety net. If the
+ * Vertex call throws at runtime (API not enabled, runtime SA missing
+ * roles/aiplatform.user, model unavailable in the region), onboarding degrades
+ * to the offline parser instead of going dark — the same "degrade to the
+ * fallback rather than going dark" principle the price layer follows. The real
+ * Vertex error is logged so the misconfiguration stays visible in Cloud Logging.
+ */
+export class FallbackGemini implements GeminiClient {
+  constructor(
+    private readonly primary: GeminiClient,
+    private readonly fallback: GeminiClient,
+  ) {}
+
+  async normalise(text: string): Promise<RawProposal[]> {
+    try {
+      return await this.primary.normalise(text);
+    } catch (e) {
+      console.error("normalise: primary (Vertex) failed — degrading to deterministic parser", e);
+      return this.fallback.normalise(text);
+    }
+  }
+}
+
 export function getGeminiClient(): GeminiClient {
   const project = process.env["GOOGLE_CLOUD_PROJECT"] ?? process.env["GCLOUD_PROJECT"] ?? "";
   const useVertex = process.env["CANCRI_USE_VERTEX"] === "true" && project !== "";
   if (!useVertex) return new MockGemini();
-  return new VertexGemini(
+  const vertex = new VertexGemini(
     project,
     process.env["CANCRI_VERTEX_LOCATION"] ?? "europe-west1",
     process.env["CANCRI_GEMINI_MODEL"] ?? "gemini-3.5-flash",
   );
+  return new FallbackGemini(vertex, new MockGemini());
 }

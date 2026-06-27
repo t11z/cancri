@@ -58,20 +58,12 @@ export interface ChatMessage {
   readonly text: string;
 }
 
-export const DEFAULT_CHAT: readonly ChatMessage[] = [
-  {
-    role: "user",
-    text: "12 aapl, 0.5 btc, a hundred msft shares, ~30 nvidia, palantir 120, and some amazon",
-  },
-  {
-    role: "bot",
-    text: "parsed 7 instruments. 2 need your eye → AMZN (qty unclear: \"some\") and PLTR (confirm 120?). resolving symbols & logos…",
-  },
-  {
-    role: "bot",
-    text: "normalised inventory ready. hit parse to review the proposal before anything goes live.",
-  },
-];
+/**
+ * The onboarding thread starts empty — the user's first message is the first
+ * thing in it. (Previously this seeded a demo conversation, which read as
+ * pre-typed text the user never entered.)
+ */
+export const DEFAULT_CHAT: readonly ChatMessage[] = [];
 
 export interface BootLine {
   readonly tag: string;
