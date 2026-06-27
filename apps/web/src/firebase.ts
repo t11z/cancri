@@ -10,15 +10,29 @@ import { connectDatabaseEmulator, getDatabase, type Database } from "firebase/da
  * the client only ever READS /quotes + /feed/status from RTDB.
  */
 const env = import.meta.env;
-const useEmulator = (env.VITE_USE_EMULATOR ?? (env.DEV ? "true" : "false")) === "true";
+
+/**
+ * Read a Vite-injected env var, treating an empty string as absent. An unset
+ * GitHub Actions `${{ vars.* }}` expands to "" (not undefined), so a bare `??`
+ * fallback would bake an invalid *empty* config into the bundle — `getAuth()`
+ * then throws `auth/invalid-api-key` at module load, `start()` never runs, and
+ * the page stays blank. Coalescing "" to the fallback keeps the documented
+ * demo-config degradation instead.
+ */
+const envOr = (value: string | undefined, fallback: string): string =>
+  value != null && value !== "" ? value : fallback;
+
+const useEmulator = envOr(env.VITE_USE_EMULATOR, env.DEV ? "true" : "false") === "true";
 
 const firebaseConfig = {
-  apiKey: env.VITE_FIREBASE_API_KEY ?? "demo-api-key",
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN ?? "demo-cancri.firebaseapp.com",
-  projectId: env.VITE_FIREBASE_PROJECT_ID ?? "demo-cancri",
-  appId: env.VITE_FIREBASE_APP_ID ?? "demo-app",
-  databaseURL:
-    env.VITE_FIREBASE_DATABASE_URL ?? "https://demo-cancri-default-rtdb.europe-west1.firebasedatabase.app",
+  apiKey: envOr(env.VITE_FIREBASE_API_KEY, "demo-api-key"),
+  authDomain: envOr(env.VITE_FIREBASE_AUTH_DOMAIN, "demo-cancri.firebaseapp.com"),
+  projectId: envOr(env.VITE_FIREBASE_PROJECT_ID, "demo-cancri"),
+  appId: envOr(env.VITE_FIREBASE_APP_ID, "demo-app"),
+  databaseURL: envOr(
+    env.VITE_FIREBASE_DATABASE_URL,
+    "https://demo-cancri-default-rtdb.europe-west1.firebasedatabase.app",
+  ),
 };
 
 export const app: FirebaseApp = initializeApp(firebaseConfig);

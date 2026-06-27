@@ -210,6 +210,11 @@ echo "projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github-p
    `VITE_FIREBASE_APP_ID`, and `VITE_FIREBASE_DATABASE_URL`
    (`https://<project>-default-rtdb.europe-west1.firebasedatabase.app`). Without them the
    deployed app falls back to the `demo-cancri` config in `apps/web/src/firebase.ts`.
+   Note: put `VITE_FIREBASE_API_KEY` under the **Variables** tab with the others. It may
+   also live under **Secrets** (`deploy.yml` reads `vars.* || secrets.*` for it) — but it
+   must be set in *one* of the two tabs. Leaving it set under neither resolves to "", which
+   bakes an invalid empty key into the bundle and the deployed page mounts blank
+   (`auth/invalid-api-key`) rather than degrading to the demo config.
 
 `firebase-tools` deploys Hosting/Functions/rules; `gcloud` builds + deploys the feed-engine
 Cloud Run image (this split keeps the long-running deploy off the firebase-tools v15 ADC
