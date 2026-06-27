@@ -9,7 +9,7 @@ await build({
   format: "cjs",
   target: "node22",
   outfile: "lib/index.js",
-  external: ["firebase-admin", "ws"],
+  external: ["firebase-admin", "ws", "protobufjs"],
 });
 
 console.log("feed-engine: bundled lib/index.js");

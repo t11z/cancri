@@ -15,6 +15,7 @@
   "dependencies": {
     "@cancri/data-contracts": "workspace:*",
     "firebase-admin": "^14.1.0",
+    "protobufjs": "^8.6.5",
     "ws": "^8.21.0"
   },
   "devDependencies": {
