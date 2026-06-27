@@ -102,10 +102,16 @@ jobs:
             | docker login -u oauth2accesstoken --password-stdin "https://$REGION-docker.pkg.dev"
           docker build -f services/feed-engine/Dockerfile -t "$IMAGE" .
           docker push "$IMAGE"
+          # firebase-admin cannot auto-detect the RTDB URL for non-US regions from
+          # the project ID; without it getDatabase() throws synchronously before
+          # listen() runs and Cloud Run never sees the port open. Derive the URL
+          # from the Firebase naming convention for non-US default instances.
+          RTDB_URL="https://${PROJECT_ID}-default-rtdb.${REGION}.firebasedatabase.app"
           gcloud run deploy cancri-feed-engine \
             --image "$IMAGE" --region "$REGION" --project "$PROJECT_ID" \
             --ingress internal --no-allow-unauthenticated \
-            --min-instances 1 --max-instances 1 --concurrency 1 --cpu-boost
+            --min-instances 1 --max-instances 1 --concurrency 1 --cpu-boost \
+            --update-env-vars "FIREBASE_DATABASE_URL=${RTDB_URL}"
 
       - name: Self-heal Job (TODO — needs the Playwright capture image)
         run: |
