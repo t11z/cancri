@@ -6,6 +6,11 @@
   "database": {
     "rules": "config/database.rules.json"
   },
+  "functions": {
+    "source": "functions",
+    "codebase": "default",
+    "runtime": "nodejs22"
+  },
   "hosting": {
     "public": "apps/web/dist",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
@@ -13,6 +18,7 @@
   },
   "emulators": {
     "auth": { "port": 9099 },
+    "functions": { "port": 5001 },
     "firestore": { "port": 8080 },
     "database": { "port": 9000 },
     "hosting": { "port": 5000 },

@@ -1,4 +1,4 @@
-import type { Position } from "@cancri/data-contracts";
+import type { Position, ProposedPosition } from "@cancri/data-contracts";
 import { ACCENT_PALETTE, DEFAULT_HOLDINGS, type SimSeed } from "@cancri/sim-source";
 import type { DemoPosition } from "./state.js";
 import type { ProposalRow } from "./fixtures.js";
@@ -33,6 +33,20 @@ export function simSeedsFromInventory(inv: readonly DemoPosition[]): SimSeed[] {
       freshness: ref?.freshness ?? "live",
     };
   });
+}
+
+/** Map Gemini's confirmed proposal into Positions (the book). ISIN falls back to
+ *  the symbol as a Phase-3 stand-in until the Phase-4 resolver supplies a real one. */
+export function proposalToPositions(proposal: readonly ProposedPosition[]): Position[] {
+  return proposal.map((p, i) => ({
+    isin: p.isin ?? p.symbol,
+    symbol: p.symbol,
+    name: p.name,
+    quantity: p.quantity,
+    source: p.source,
+    accent: ACCENT_PALETTE[i % ACCENT_PALETTE.length] ?? "#7b5cff",
+    ...(p.costBasis !== undefined ? { costBasis: p.costBasis } : {}),
+  }));
 }
 
 /** Strip the view-only logo state for persistence (the book stores Positions). */

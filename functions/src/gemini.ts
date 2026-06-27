@@ -1,4 +1,3 @@
-import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 
 /**
@@ -41,16 +40,28 @@ Rules:
 - One element per distinct instrument. No prose, no markdown — JSON only.`;
 
 class VertexGemini implements GeminiClient {
-  private readonly ai: GoogleGenAI;
-  private readonly model: string;
+  // Lazily imported so @google/genai (and its google-auth metadata probing) never
+  // loads on the mock/discovery path — only when the real Vertex call is made.
+  private client: Promise<import("@google/genai").GoogleGenAI> | null = null;
 
-  constructor(project: string, location: string, model: string) {
-    this.ai = new GoogleGenAI({ vertexai: true, project, location });
-    this.model = model;
+  constructor(
+    private readonly project: string,
+    private readonly location: string,
+    private readonly model: string,
+  ) {}
+
+  private getClient(): Promise<import("@google/genai").GoogleGenAI> {
+    if (this.client === null) {
+      this.client = import("@google/genai").then(
+        (m) => new m.GoogleGenAI({ vertexai: true, project: this.project, location: this.location }),
+      );
+    }
+    return this.client;
   }
 
   async normalise(text: string): Promise<RawProposal[]> {
-    const res = await this.ai.models.generateContent({
+    const ai = await this.getClient();
+    const res = await ai.models.generateContent({
       model: this.model,
       contents: `${SYSTEM_PROMPT}\n\nINPUT:\n${text}`,
       config: { responseMimeType: "application/json", temperature: 0 },
