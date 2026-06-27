@@ -26,6 +26,7 @@ export function renderOnboard(app: App): void {
   app.root.innerHTML = `
   <div style="position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;">
     <div style="${TOPBAR}">
+      <img src="/cancri-logo-mark.png" alt="cancri" width="22" height="22" style="border-radius:50%;filter:drop-shadow(0 0 7px #7b5cff55);" />
       <span style="color:#7b5cff;font-weight:700;letter-spacing:2px;">CANCRI</span>
       <span style="color:#39424f;">/</span>
       <span style="color:#6b7787;">onboarding · feed the terminal</span>
