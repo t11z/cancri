@@ -59,6 +59,15 @@ jobs:
           service_account: ${{ vars.DEPLOYER_SA }}
           create_credentials_file: true
           export_environment_variables: true
+          # Also mint an impersonated OAuth access token for the deployer SA. We use
+          # it to `docker login` to Artifact Registry directly (below) instead of
+          # gcloud's docker credential helper: the helper refreshes the token via
+          # iamcredentials with the quota project attached, and that billing check is
+          # evaluated against the *federated WIF principal* (not the deployer SA),
+          # which lacks serviceusage.serviceUsageConsumer — so it 403s and the push
+          # falls back to an unauthenticated request. A direct token login sidesteps
+          # the helper entirely (the token is already the deployer SA's).
+          token_format: "access_token"
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
 
@@ -76,7 +85,11 @@ jobs:
         run: |
           REGION="${{ vars.GCP_REGION || 'europe-west1' }}"
           IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/cancri/feed-engine:${{ github.sha }}"
-          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          # Log in with the impersonated deployer-SA access token (oauth2accesstoken),
+          # not gcloud's credential helper — see the auth step for why. The token value
+          # is registered as a masked secret by the auth action, so it is not logged.
+          echo "${{ steps.auth.outputs.access_token }}" \
+            | docker login -u oauth2accesstoken --password-stdin "https://$REGION-docker.pkg.dev"
           docker build -f services/feed-engine/Dockerfile -t "$IMAGE" .
           docker push "$IMAGE"
           gcloud run deploy cancri-feed-engine \
