@@ -23,4 +23,7 @@ jobs:
         uses: zircote/structured-madr@1885ace5d825e2b2982505e28468dd4f5ba1d1c0 # v1.2.0
         with:
           path: docs/decisions
+          # Validate only numbered ADR files; the index README.md and the
+          # placeholder adr-template.md are intentionally not smADR documents.
+          pattern: '[0-9]*.md'
           strict: 'false'

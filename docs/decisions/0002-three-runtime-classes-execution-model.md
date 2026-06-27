@@ -1,5 +1,5 @@
 ---
-title: "Three Runtime Classes: Functions, Run, Browser Job"
+title: "Three Runtime Classes: Functions, Cloud Run, Job"
 description: "Split work by lifecycle across request-scoped Cloud Functions, one always-on Cloud Run service, and an on-demand Cloud Run Job."
 type: adr
 category: architecture
@@ -12,7 +12,7 @@ project: cancri
 technologies: [firebase, cloud-functions, cloud-run, cloud-run-jobs, playwright]
 ---
 
-# ADR-0002: Three Runtime Classes: Functions, Always-On Cloud Run, Browser Job
+# ADR-0002: Three Runtime Classes: Functions, Cloud Run, Job
 
 ## Status
 
