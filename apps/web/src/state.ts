@@ -1,6 +1,6 @@
 import type { Freshness, Position, FeedStatus, LogoState } from "@cancri/data-contracts";
 
-export type Screen = "boot" | "auth" | "onboard" | "confirm" | "dash";
+export type Screen = "boot" | "auth" | "denied" | "onboard" | "confirm" | "dash";
 
 /**
  * Dashboard secondary states. Five map to feed/connection states the SourceAdapter

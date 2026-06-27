@@ -12,6 +12,7 @@ let container: HTMLDivElement | null = null;
 const SCREENS: ReadonlyArray<[Screen, string]> = [
   ["boot", "BOOT"],
   ["auth", "AUTH"],
+  ["denied", "DENIED"],
   ["onboard", "ONBOARD"],
   ["confirm", "CONFIRM"],
   ["dash", "DASH"],

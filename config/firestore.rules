@@ -4,6 +4,10 @@ rules_version = '2';
 // drafts, and audit. The privacy boundary is "what you own": everything under
 // /users/{uid} is reachable only by that authenticated user. Default deny.
 //
+// Access is invite-gated (ADR-0012): authenticating is not enough — the user's
+// email must have an /allowlist/{email} entry to mount a book. Membership is
+// managed out-of-band (Firebase console / admin); the client never writes it.
+//
 // Prices are NOT here — quotes live in Realtime Database as a public-to-signed-in
 // resource (ADR-0004/0005), governed by database.rules.json.
 service cloud.firestore {
@@ -13,13 +17,26 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    // On the invite-allowlist: a verified-email entry must exist for this user.
+    function isAllowlisted() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/allowlist/$(request.auth.token.email));
+    }
+
     // A user's entire subtree: profile, inventory/current, drafts/*, audit/*.
     match /users/{uid} {
-      allow read, write: if signedInAs(uid);
+      allow read, write: if signedInAs(uid) && isAllowlisted();
 
       match /{document=**} {
-        allow read, write: if signedInAs(uid);
+        allow read, write: if signedInAs(uid) && isAllowlisted();
       }
+    }
+
+    // A signed-in user may read only their own allowlist entry, so the client
+    // can show the "not invited" gate. Writes are admin-only (no client rule).
+    match /allowlist/{email} {
+      allow read: if request.auth != null && request.auth.token.email == email;
     }
 
     // Everything else: denied. (No rule = no access in Firestore.)
