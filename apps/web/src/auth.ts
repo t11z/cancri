@@ -1,8 +1,6 @@
 import {
   GoogleAuthProvider,
-  createUserWithEmailAndPassword,
   onAuthStateChanged,
-  signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
   type User,
@@ -21,22 +19,10 @@ export function currentUser(): User | null {
 }
 
 /**
- * Sign in with email/passphrase; auto-register on first use (this is an access-
- * gated personal terminal — a real invite-allowlist policy is a later decision).
+ * Sign in with Google. The terminal is access-gated: any Google account can
+ * authenticate, but the invite-allowlist (enforced in the Firestore security
+ * rules, ADR-0012) decides who may actually mount a book.
  */
-export async function signInOrRegister(email: string, password: string): Promise<void> {
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-  } catch (err) {
-    const code = (err as { code?: string }).code;
-    if (code === "auth/user-not-found" || code === "auth/invalid-credential") {
-      await createUserWithEmailAndPassword(auth, email, password);
-      return;
-    }
-    throw err;
-  }
-}
-
 export async function signInGoogle(): Promise<void> {
   await signInWithPopup(auth, new GoogleAuthProvider());
 }

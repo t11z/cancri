@@ -9,6 +9,13 @@ import {
   type Auth,
 } from "firebase/auth";
 import { connectFirestoreEmulator, getFirestore, type Firestore } from "firebase/firestore";
+import {
+  deleteApp as adminDeleteApp,
+  initializeApp as adminInitializeApp,
+  type App as AdminApp,
+} from "firebase-admin/app";
+import { getAuth as adminGetAuth } from "firebase-admin/auth";
+import { getFirestore as adminGetFirestore } from "firebase-admin/firestore";
 import type { Position } from "@cancri/data-contracts";
 import { loadInventory, saveInventory } from "./persistence.js";
 
@@ -16,12 +23,19 @@ import { loadInventory, saveInventory } from "./persistence.js";
  * Phase-2 persistence + auth integration, run under the REAL security rules via
  * `firebase emulators:exec --only auth,firestore`. Proves the confirmed book
  * round-trips and survives a session (sign-out / sign-in), as the owner.
+ *
+ * Access is invite-gated (ADR-0012): a book is reachable only by an allowlisted,
+ * verified-email user. The Admin SDK seeds those preconditions (a verified user
+ * and an /allowlist/{email} entry — both admin-only paths) before the client runs.
  */
+const USERS = ["alice@cancri.test", "bob@cancri.test", "carol@cancri.test"];
+
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
+let adminApp: AdminApp;
 
-beforeAll(() => {
+beforeAll(async () => {
   app = initializeApp(
     { apiKey: "demo", projectId: "demo-cancri", authDomain: "demo-cancri.firebaseapp.com" },
     "persist-test",
@@ -30,11 +44,31 @@ beforeAll(() => {
   db = getFirestore(app);
   connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
   connectFirestoreEmulator(db, "127.0.0.1", 8080);
+
+  // Seed the invite-allowlist preconditions via the Admin SDK (rules bypassed).
+  adminApp = adminInitializeApp({ projectId: "demo-cancri" }, "persist-admin");
+  for (const email of USERS) {
+    await ensureVerifiedUser(adminApp, email);
+    await adminGetFirestore(adminApp).doc(`allowlist/${email}`).set({ addedAt: 0 });
+  }
 });
 
 afterAll(async () => {
   await deleteApp(app);
+  await adminDeleteApp(adminApp);
 });
+
+/** Create (or re-verify) an email/password user with a verified email, so the
+ *  client's token satisfies the rules' email_verified gate after sign-in. */
+async function ensureVerifiedUser(admin: AdminApp, email: string): Promise<void> {
+  const adminAuth = adminGetAuth(admin);
+  try {
+    const u = await adminAuth.getUserByEmail(email);
+    await adminAuth.updateUser(u.uid, { emailVerified: true });
+  } catch {
+    await adminAuth.createUser({ email, password: "passphrase1", emailVerified: true });
+  }
+}
 
 const POSITIONS: Position[] = [
   { isin: "US0378331005", symbol: "AAPL", name: "Apple Inc.", quantity: 42, source: "NASDAQ", accent: "#7b5cff" },

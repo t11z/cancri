@@ -33,35 +33,58 @@ beforeEach(async () => {
   await env.clearFirestore();
 });
 
-describe("Firestore — the book is private per user (ADR-0004)", () => {
-  test("a user can write and read their own inventory", async () => {
-    const alice = env.authenticatedContext("alice").firestore();
+const ALICE_EMAIL = "alice@example.com";
+
+/** A signed-in context for Alice with a verified email (Google-style token). */
+const aliceCtx = (): ReturnType<RulesTestEnvironment["authenticatedContext"]> =>
+  env.authenticatedContext("alice", { email: ALICE_EMAIL, email_verified: true });
+
+/** Seed Alice onto the invite-allowlist (admin-only path, rules bypassed). */
+const inviteAlice = async (): Promise<void> => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), `allowlist/${ALICE_EMAIL}`), { addedAt: 0 });
+  });
+};
+
+describe("Firestore — the book is private per user and invite-gated (ADR-0004/0012)", () => {
+  test("an allowlisted user can write and read their own inventory", async () => {
+    await inviteAlice();
+    const alice = aliceCtx().firestore();
     await assertSucceeds(
       setDoc(doc(alice, "users/alice/inventory/current"), { positions: [] }),
     );
     await assertSucceeds(getDoc(doc(alice, "users/alice/inventory/current")));
   });
 
-  test("a user can write nested drafts and audit under their own subtree", async () => {
-    const alice = env.authenticatedContext("alice").firestore();
+  test("an allowlisted user can write nested drafts and audit under their own subtree", async () => {
+    await inviteAlice();
+    const alice = aliceCtx().firestore();
     await assertSucceeds(setDoc(doc(alice, "users/alice/drafts/d1"), { raw: "12 AAPL" }));
     await assertSucceeds(
       setDoc(doc(alice, "users/alice/inventoryHistory/2026-06-27T00:00:00Z"), { positions: [] }),
     );
   });
 
+  test("a signed-in user NOT on the allowlist cannot touch their own book (ADR-0012)", async () => {
+    const alice = aliceCtx().firestore(); // authenticated, verified email, but not invited
+    await assertFails(getDoc(doc(alice, "users/alice/inventory/current")));
+    await assertFails(setDoc(doc(alice, "users/alice/inventory/current"), { positions: [] }));
+  });
+
   test("a user CANNOT read another user's inventory", async () => {
+    await inviteAlice();
     await env.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), "users/bob/inventory/current"), {
         positions: [{ isin: "US0378331005", quantity: 42 }],
       });
     });
-    const alice = env.authenticatedContext("alice").firestore();
+    const alice = aliceCtx().firestore();
     await assertFails(getDoc(doc(alice, "users/bob/inventory/current")));
   });
 
   test("a user CANNOT write into another user's subtree", async () => {
-    const alice = env.authenticatedContext("alice").firestore();
+    await inviteAlice();
+    const alice = aliceCtx().firestore();
     await assertFails(setDoc(doc(alice, "users/bob/inventory/current"), { positions: [] }));
   });
 
@@ -69,6 +92,27 @@ describe("Firestore — the book is private per user (ADR-0004)", () => {
     const anon = env.unauthenticatedContext().firestore();
     await assertFails(getDoc(doc(anon, "users/alice/inventory/current")));
     await assertFails(setDoc(doc(anon, "users/alice/inventory/current"), { positions: [] }));
+  });
+});
+
+describe("Firestore — allowlist entries are self-read-only, client-unwritable (ADR-0012)", () => {
+  test("a user can read their own allowlist entry (drives the client gate)", async () => {
+    await inviteAlice();
+    const alice = aliceCtx().firestore();
+    await assertSucceeds(getDoc(doc(alice, `allowlist/${ALICE_EMAIL}`)));
+  });
+
+  test("a user CANNOT read someone else's allowlist entry", async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "allowlist/bob@example.com"), { addedAt: 0 });
+    });
+    const alice = aliceCtx().firestore();
+    await assertFails(getDoc(doc(alice, "allowlist/bob@example.com")));
+  });
+
+  test("a user CANNOT write their own allowlist entry (admin-only)", async () => {
+    const alice = aliceCtx().firestore();
+    await assertFails(setDoc(doc(alice, `allowlist/${ALICE_EMAIL}`), { addedAt: 0 }));
   });
 });
 

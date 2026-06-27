@@ -2,7 +2,6 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { deleteApp, initializeApp, type FirebaseApp } from "firebase/app";
 import {
   connectAuthEmulator,
-  createUserWithEmailAndPassword,
   getAuth,
   signInWithEmailAndPassword,
   signOut,
@@ -15,17 +14,29 @@ import {
   type Functions,
 } from "firebase/functions";
 import { connectFirestoreEmulator, doc, getDoc, getFirestore, type Firestore } from "firebase/firestore";
+import {
+  deleteApp as adminDeleteApp,
+  initializeApp as adminInitializeApp,
+  type App as AdminApp,
+} from "firebase-admin/app";
+import { getAuth as adminGetAuth } from "firebase-admin/auth";
+import { getFirestore as adminGetFirestore } from "firebase-admin/firestore";
 import type { Position, ProposedPosition } from "@cancri/data-contracts";
 
 /**
  * Phase-3b end-to-end through the Functions emulator (MockGemini server-side):
  * the client invokes the callables exactly as the app does, proving the data path
  * and that normalisation runs server-side under auth — no key in the client.
+ *
+ * The read-back of the persisted book runs under the real rules, so the test user
+ * must be allowlisted with a verified email (ADR-0012); the Admin SDK seeds both
+ * before the client signs in.
  */
 let app: FirebaseApp;
 let auth: Auth;
 let fns: Functions;
 let db: Firestore;
+let adminApp: AdminApp;
 let uid: string;
 
 beforeAll(async () => {
@@ -38,16 +49,27 @@ beforeAll(async () => {
   connectFirestoreEmulator(db, "127.0.0.1", 8080);
 
   const email = "trader@cancri.test";
+
+  // Seed invite-allowlist preconditions via the Admin SDK before signing in, so
+  // the client's token is verified and the email is allowlisted (ADR-0012).
+  adminApp = adminInitializeApp({ projectId: "demo-cancri" }, "callable-admin");
+  const adminAuth = adminGetAuth(adminApp);
+  let record;
   try {
-    await signInWithEmailAndPassword(auth, email, "passphrase1");
+    record = await adminAuth.getUserByEmail(email);
+    await adminAuth.updateUser(record.uid, { emailVerified: true });
   } catch {
-    await createUserWithEmailAndPassword(auth, email, "passphrase1");
+    record = await adminAuth.createUser({ email, password: "passphrase1", emailVerified: true });
   }
-  uid = auth.currentUser?.uid ?? "";
+  await adminGetFirestore(adminApp).doc(`allowlist/${email}`).set({ addedAt: 0 });
+
+  await signInWithEmailAndPassword(auth, email, "passphrase1");
+  uid = auth.currentUser?.uid ?? record.uid;
 });
 
 afterAll(async () => {
   await deleteApp(app);
+  await adminDeleteApp(adminApp);
 });
 
 describe("Gemini callables (Functions emulator, MockGemini)", () => {

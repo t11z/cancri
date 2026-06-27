@@ -26,3 +26,18 @@ export async function loadInventory(db: Firestore, uid: string): Promise<Positio
   const positions = snap.data()["positions"];
   return Array.isArray(positions) ? (positions as Position[]) : null;
 }
+
+/**
+ * Invite-allowlist membership (ADR-0012). The terminal is access-gated: any
+ * Google account can authenticate, but only an /allowlist/{email} entry may
+ * mount a book. The security rules let a signed-in user read only their own
+ * entry, so this drives the client gate. Falls back to denied on any read error.
+ */
+export async function isAllowlisted(db: Firestore, email: string): Promise<boolean> {
+  try {
+    const snap = await getDoc(doc(db, `allowlist/${email}`));
+    return snap.exists();
+  } catch {
+    return false;
+  }
+}

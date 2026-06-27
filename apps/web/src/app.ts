@@ -11,12 +11,13 @@ import {
 import { buildDemoInventory } from "./fixtures.js";
 import { positionsToDemo, proposalToPositions, simSeedsFromInventory } from "./inventory.js";
 import { seedSeries } from "./sparkline.js";
-import { onAuth, signInGoogle, signInOrRegister, signOutUser, type User } from "./auth.js";
+import { onAuth, signInGoogle, signOutUser, type User } from "./auth.js";
 import { db } from "./firebase.js";
-import { loadInventory } from "./persistence.js";
+import { isAllowlisted, loadInventory } from "./persistence.js";
 import { callConfirm, callNormalize, type NormalizeInput } from "./functions-client.js";
 import { renderBoot } from "./screens/boot.js";
 import { renderAuth } from "./screens/auth.js";
+import { renderDenied } from "./screens/denied.js";
 import { renderOnboard } from "./screens/onboard.js";
 import { renderConfirm } from "./screens/confirm.js";
 import { Dashboard } from "./screens/dashboard.js";
@@ -96,10 +97,16 @@ export class App {
     void this.enterSignedIn();
   }
 
-  /** Signed in: load the book; go live if it exists, else onboard. */
+  /** Signed in: gate on the invite-allowlist, then load the book; go live if it
+   *  exists, else onboard. (ADR-0012 — authenticating is not authorisation.) */
   private async enterSignedIn(): Promise<void> {
     const uid = this.user?.uid;
+    const email = this.user?.email;
     if (uid === undefined) return;
+    if (email === null || email === undefined || !(await isAllowlisted(db, email))) {
+      this.goScreen("denied");
+      return;
+    }
     let positions = null;
     try {
       positions = await loadInventory(db, uid);
@@ -111,11 +118,6 @@ export class App {
     } else {
       this.goScreen("onboard");
     }
-  }
-
-  async signIn(email: string, password: string): Promise<void> {
-    await signInOrRegister(email, password);
-    // onAuth fires → tryRoute()
   }
 
   async signInGoogle(): Promise<void> {
@@ -259,6 +261,9 @@ export class App {
         break;
       case "auth":
         renderAuth(this);
+        break;
+      case "denied":
+        renderDenied(this);
         break;
       case "onboard":
         renderOnboard(this);
