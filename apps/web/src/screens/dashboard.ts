@@ -156,6 +156,7 @@ export class Dashboard {
     <div style="position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;background:#070a0f;">
       <div style="display:flex;align-items:stretch;border-bottom:1px solid #1a2130;background:#0b0f16;">
         <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;border-right:1px solid #1a2130;">
+          <img src="/cancri-logo-mark.png" alt="cancri" width="24" height="24" style="border-radius:50%;filter:drop-shadow(0 0 8px #7b5cff55);" />
           <span style="color:#7b5cff;font-weight:800;letter-spacing:2px;font-size:14px;">CANCRI</span>
           <span style="font-size:10px;color:#39424f;border:1px solid #1a2130;border-radius:4px;padding:2px 5px;">LPT</span>
         </div>

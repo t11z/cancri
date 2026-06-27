@@ -21,6 +21,7 @@ export function renderAuth(app: App): void {
         <span style="margin-left:8px;font-size:11px;color:#6b7787;letter-spacing:.5px;">cancri@auth — secure shell</span>
       </div>
       <div style="padding:30px 28px 26px;">
+        <img src="/cancri-logo-mark.png" alt="cancri" width="88" height="88" style="display:block;margin:0 auto 16px;border-radius:50%;filter:drop-shadow(0 0 26px #7b5cff44);" />
         <div style="font-size:12px;color:#7b5cff;letter-spacing:3px;font-weight:700;">CANCRI</div>
         <div style="font-size:11px;color:#39424f;margin-top:2px;letter-spacing:1px;">live-portfolio-terminal · v0.4</div>
         <div style="margin-top:24px;font-size:13px;color:#6b7787;">&gt; identify yourself to mount your book</div>
