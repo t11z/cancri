@@ -26,3 +26,6 @@ export function getActiveProtocol(): ProtocolModule {
   const config = REGISTRY[ACTIVE_PROTOCOL_VERSION] ?? PROTOCOL_CONFIG_V1;
   return makeProtocolModule(config);
 }
+
+// The deterministic replay / fixture verification — the self-heal gate primitive.
+export * from "./replay.js";

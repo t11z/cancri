@@ -4,11 +4,8 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
   resolve: {
     alias: {
-      "@cancri/data-contracts": fileURLToPath(
-        new URL("../../packages/data-contracts/src/index.ts", import.meta.url),
-      ),
       "@cancri/ls-protocol": fileURLToPath(
-        new URL("../../packages/ls-protocol/src/index.ts", import.meta.url),
+        new URL("../ls-protocol/src/index.ts", import.meta.url),
       ),
     },
   },

@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@cancri/data-contracts": "workspace:*",
+    "@cancri/ls-protocol": "workspace:*",
     "firebase-admin": "^14.1.0",
     "protobufjs": "^8.6.5",
     "ws": "^8.21.0"
