@@ -7,6 +7,7 @@
 **a terminal you leave open.** colour and motion carry information — direction, freshness, activity — never decoration. and the terminal always tells the truth about its own data: <span>`LIVE`</span> vs <span>`DELAYED`</span> is never hidden.
 
 [![CI](https://github.com/t11z/cancri/actions/workflows/ci.yml/badge.svg)](https://github.com/t11z/cancri/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-github%20pages-5ec6ff)](https://t11z.github.io/cancri/)
 [![ADRs](https://img.shields.io/badge/decisions-smADR-7b5cff)](docs/decisions/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-36f9d0)](LICENSE)
 ![Node](https://img.shields.io/badge/node-26-5ec6ff)
@@ -94,18 +95,32 @@ design/                    the Claude Design handover — source of truth for al
 > (host needs Docker; the helper scripts use a `node:26` container.)
 
 ```bash
-# run the terminal locally (mock feed, no backend, no secrets)
-scripts/dev.sh           # → http://localhost:5173
+# one-shot: checks Docker, then boots the terminal (mock feed, no backend, no secrets)
+scripts/quickstart.sh    # → http://localhost:5173
 
-# typecheck every package + production-build the web app
-scripts/build.sh
+# or the plain dev server / a full typecheck + production build
+scripts/dev.sh           # → http://localhost:5173
+scripts/build.sh         # typecheck every package + build the web app
 ```
 
 the dev build ships a `// review` bar (dev-only) to jump between every screen and dashboard
 state — boot · auth · onboard · confirm · dash, and live / degraded / reconnect / closed / empty / error.
 
 want the full Firebase emulator suite (auth + firestore + database + functions)? see
-[`SETUP.md`](SETUP.md).
+[`SETUP.md`](SETUP.md). want to deploy? `scripts/deploy.sh` does a one-shot manual Firebase
+push, and [`deploy.yml`](.github/workflows/deploy.yml) is the keyless CI pipeline — both
+documented on the [docs site](https://t11z.github.io/cancri/deploy.html).
+
+## documentation
+
+full user + maintainer docs — in cancri's own optics — live at
+**[t11z.github.io/cancri](https://t11z.github.io/cancri/)** (source in [`site/`](site/), published by
+[`pages.yml`](.github/workflows/pages.yml)):
+[quickstart](https://t11z.github.io/cancri/quickstart.html) ·
+[usage](https://t11z.github.io/cancri/usage.html) ·
+[contributing](https://t11z.github.io/cancri/contributing.html) ·
+[deploy](https://t11z.github.io/cancri/deploy.html) ·
+[maintaining](https://t11z.github.io/cancri/maintaining.html).
 
 ## stack
 

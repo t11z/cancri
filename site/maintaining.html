@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Maintaining — cancri docs</title>
+<meta name="description" content="Maintainer reference for cancri: the architecture, the source-agnostic data layer, the self-heal governance loop, CI gates, secrets, and the architecture-decision record." />
+<link rel="icon" href="assets/cancri-logo-mark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/cancri.css" />
+</head>
+<body>
+
+<header class="term-header">
+  <a class="brand" href="index.html"><img class="logo" src="assets/cancri-logo-mark.png" alt="" width="26" height="26" /><span class="mark">CANCRI</span><span class="lpt">DOCS · v0.4</span></a>
+  <nav class="nav">
+    <a href="index.html">overview</a>
+    <a href="quickstart.html">quickstart</a>
+    <a href="usage.html">usage</a>
+    <a href="contributing.html">contributing</a>
+    <a href="deploy.html">deploy</a>
+    <a href="maintaining.html" class="active">maintaining</a>
+  </nav>
+  <button class="nav-toggle" aria-label="Toggle navigation">menu</button>
+  <div class="header-status">
+    <span class="dot live" aria-hidden="true"></span>
+    <span class="label">DOCS</span>
+    <span class="clock" data-clock>--:--:-- ET</span>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="doc">
+    <aside class="toc">
+      <p class="toc-label">on this page</p>
+      <a href="#runtimes">Three runtime classes</a>
+      <a href="#datalayer">The data layer</a>
+      <a href="#degrade">Degradation FSM</a>
+      <a href="#selfheal">Self-heal governance</a>
+      <a href="#secrets">Secrets &amp; isolation</a>
+      <a href="#ci">CI &amp; gates</a>
+      <a href="#tokens">Design tokens</a>
+      <a href="#adrs">Decision record</a>
+      <a href="#runbook">Maintainer runbook</a>
+    </aside>
+
+    <div class="doc-body">
+      <p class="section-label">maintainer</p>
+      <h1 style="font-size:clamp(26px,5vw,40px);margin:0 0 10px;color:var(--c-text-primary);">Maintaining</h1>
+      <p class="lead">How cancri is put together, and the invariants a maintainer protects. Every load-bearing decision
+        is an <a href="#adrs">smADR</a>; this page is the map, not a substitute for them.</p>
+
+      <h2 id="runtimes">Three runtime classes</h2>
+      <p>cancri splits cleanly into three execution classes (ADR-0002), each with a different trust and lifetime profile.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>class</th><th>runs as</th><th>responsibility</th></tr></thead>
+          <tbody>
+            <tr><td><strong>client</strong></td><td>browser · Firebase Hosting</td><td>vanilla-TS terminal, single rAF loop. <strong>Subscribes to normalised ticks only</strong> — no source internals, no keys.</td></tr>
+            <tr><td><strong>request/response</strong></td><td>Cloud Functions (2nd gen)</td><td>Gemini normalise/confirm + logo. Vertex via IAM, no API key.</td></tr>
+            <tr><td><strong>always-on / scheduled</strong></td><td>Cloud Run service + Job</td><td>The feed-engine (sole RTDB writer) and the self-heal capture Job.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="datalayer">The data layer</h2>
+      <p>Built from scratch behind a <strong>source-agnostic adapter interface</strong> that delivers normalised ticks
+        (ADR-0006). The one shared seam is <code>packages/data-contracts</code> — <strong>nothing source-specific may
+        cross it</strong> (ADR-0009).</p>
+      <div class="grid cols-2">
+        <div class="panel">
+          <h4><span class="pill up">primary</span> L&amp;S (ls-tc.de)</h4>
+          <p class="muted">Real-time, cent-accurate, an undocumented Lightstreamer-6 protocol. Isolated in
+            <code>packages/ls-protocol</code> as the <em>break surface</em> — a versioned config that the self-heal targets.</p>
+        </div>
+        <div class="panel">
+          <h4><span class="pill warn">fallback</span> Yahoo</h4>
+          <p class="muted">Delayed ~15 min, always marked <code>freshness: delayed</code>. Doubles as the runtime
+            <strong>sanity oracle</strong> — the cross-check that primary prices are plausible.</p>
+        </div>
+      </div>
+      <p class="muted">The feed-engine is a <strong>single-process singleton</strong> (ADR-0003) and the
+        <strong>sole writer</strong> to the RTDB tick bus (ADR-0004 / ADR-0005). The client reads
+        <code>/quotes/{isin}</code> and <code>/feed/status</code> read-only.</p>
+
+      <h2 id="degrade">Degradation FSM — honesty over blackout</h2>
+      <p>When the primary feed is lost, the dashboard <strong>does not blank</strong>. A finite-state machine drives a
+        visible, honest transition:</p>
+      <div class="code">
+        <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">primary → fallback</span></div>
+<pre><code><span class="c-ok">LIVE</span> ──(primary lost)──▶ <span class="c-warn">RECONNECT</span> ──(give up after n/5)──▶ <span class="c-warn">DEGRADED</span>
+  ▲                                                          │
+  └──────────────────(primary recovers)─────────────────────┘
+
+on transition: header flips LIVE→DELAYED · master dot recolours + switches to the
+slower off-beat pulse · degraded banner slides in · every row → delayed · latency climbs.
+the dashboard stays warm the whole time.</code></pre>
+      </div>
+
+      <h2 id="selfheal">Self-heal governance</h2>
+      <p>The primary source is undocumented, so it <em>will</em> drift. A scheduled probe watches L&amp;S for liveness and
+        price sanity. On a sustained break, the self-heal Job (ADR-0010):</p>
+      <ol class="steps">
+        <li><h4>Captures ground truth</h4><p>A real browser (Playwright) captures raw protocol frames <em>alongside</em> the simultaneously-rendered price — the ground truth.</p></li>
+        <li><h4>Diffs against the known protocol</h4><p>Deterministic replay searches for the fix that makes the captured frames decode to the captured price.</p></li>
+        <li><h4>Opens a reviewable PR</h4><p>With frame/price fixtures attached. <strong>No auto-merge — a human merges.</strong> Fixtures accrete append-only as protocol documentation and a regression corpus.</p></li>
+      </ol>
+      <div class="callout danger">
+        <span class="ic">●</span>
+        <p><strong>Never wire up auto-merge for self-heal PRs.</strong> The whole governance model is "the machine
+          proposes, a human disposes." The <code>ls-replay-regression</code> check + ≥1 human review are the gate;
+          branch-protect <code>main</code> to require both.</p>
+      </div>
+
+      <h2 id="secrets">Secrets &amp; isolation</h2>
+      <ul class="clean">
+        <li><strong>All source access and Gemini calls run server-side</strong> inside Firebase. The client never holds a key.</li>
+        <li>Gemini runs via <strong>Vertex AI + IAM</strong> (ADR-0008) — there is no Gemini API key to leak.</li>
+        <li>Per-user isolation is enforced by the datastore's <strong>security rules</strong> (<code>config/firestore.rules</code>, <code>config/database.rules.json</code>), tested on the emulator — not just by the UI.</li>
+        <li>L&amp;S handshake config lives in <strong>Secret Manager</strong>, never in the repo.</li>
+        <li>Keep <code>.env</code> gitignored; document placeholders in <a href="https://github.com/t11z/cancri/blob/main/.env.example"><code>.env.example</code></a>.</li>
+      </ul>
+
+      <h2 id="ci">CI &amp; gates</h2>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>workflow</th><th>trigger</th><th>what it guards</th></tr></thead>
+          <tbody>
+            <tr><td><code>ci.yml</code></td><td>push to main · PRs</td><td>typecheck (all) + web build + unit tests; rules/persistence/tick-bus on the emulators.</td></tr>
+            <tr><td><code>adr-validate.yml</code></td><td>changes under <code>docs/decisions/</code></td><td>smADR schema validity.</td></tr>
+            <tr><td><code>ls-replay-regression.yml</code></td><td><code>selfheal/*</code> PRs</td><td>the self-heal merge gate — deterministic replay + bounded-surface check.</td></tr>
+            <tr><td><code>security-review.yml</code></td><td>same-repo PRs</td><td>OAuth-authenticated review of the diff (deterministic FP-filtering).</td></tr>
+            <tr><td><code>issue-triage.yml</code></td><td>new issues / PRs</td><td>auto-labels; flags ADR-breaking requests; opens PRs only on a maintainer's <code>@claude implement</code>.</td></tr>
+            <tr><td><code>deploy.yml</code></td><td>push to main <span class="pill">gated</span></td><td>keyless WIF deploy — Firebase surfaces + Cloud Run feed-engine. See <a href="deploy.html">Deploy</a>.</td></tr>
+            <tr><td><code>pages.yml</code></td><td>push touching <code>site/</code></td><td>publishes this docs site to GitHub Pages.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout info">
+        <span class="ic">◆</span>
+        <p>All GitHub Actions are <strong>SHA-pinned</strong> (supply-chain-conscious); <code>pnpm</code> dependency build
+          scripts are explicitly approved via <code>allowBuilds</code> in <code>pnpm-workspace.yaml</code>. Claude tooling
+          authenticates with <code>CLAUDE_CODE_OAUTH_TOKEN</code>, never <code>ANTHROPIC_API_KEY</code> — see
+          <a href="https://github.com/t11z/cancri/blob/main/SETUP.md">SETUP.md</a>.</p>
+      </div>
+
+      <h2 id="tokens">Design tokens</h2>
+      <p>The <code>design/</code> handover is the source of truth for everything visual (ADR-0011). UI tokens —
+        colour + motion — are <strong>generated</strong> from <code>design/cancri.handover.json</code> by
+        <code>tools/tokens</code>:</p>
+      <div class="code">
+        <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">regenerate tokens</span><button class="copy">copy</button></div>
+<pre><code>pnpm tokens   <span class="c-cmt"># writes apps/web/src/generated/{tokens.css,tokens.ts}</span></code></pre>
+      </div>
+      <p class="muted">Never hand-edit the generated files — change the handover and re-run. This docs site mirrors the
+        same tokens in <code>site/assets/cancri.css</code> so its optics stay in lockstep with the terminal.</p>
+
+      <h2 id="adrs">Architecture decision record</h2>
+      <p>Eleven accepted smADRs pin the load-bearing decisions. Read them at
+        <a href="https://github.com/t11z/cancri/tree/main/docs/decisions"><code>docs/decisions/</code></a>.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>decision</th></tr></thead>
+          <tbody>
+            <tr><td>0001</td><td>Pin region <code>europe-west3</code></td></tr>
+            <tr><td>0002</td><td>Three runtime classes (execution model)</td></tr>
+            <tr><td>0003</td><td>Feed-engine single-process singleton</td></tr>
+            <tr><td>0004</td><td>Datastore split — Firestore (the book) / RTDB (the wire)</td></tr>
+            <tr><td>0005</td><td>Realtime transport — RTDB tick bus</td></tr>
+            <tr><td>0006</td><td>Tick schema &amp; SourceAdapter contract</td></tr>
+            <tr><td>0007</td><td>ISIN resolution — LLM proposes, resolver disposes</td></tr>
+            <tr><td>0008</td><td>Gemini via Vertex + IAM callable</td></tr>
+            <tr><td>0009</td><td>ls-protocol break-surface isolation</td></tr>
+            <tr><td>0010</td><td>Self-heal governance — PR + deterministic gate</td></tr>
+            <tr><td>0011</td><td>Frontend — vanilla TS + Vite, single rAF</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="runbook">Maintainer runbook</h2>
+      <ul class="clean">
+        <li><strong>A self-heal PR landed.</strong> Review the captured frame/price fixtures, confirm the replay-regression check is green, and merge by hand. Never auto-merge.</li>
+        <li><strong>The dashboard is stuck DELAYED.</strong> Expected when primary is down — the FSM degraded honestly. Check the feed-engine logs and the L&amp;S liveness probe; recovery flips it back to LIVE automatically.</li>
+        <li><strong>Onboarding mis-parses.</strong> Confidence &lt; 0.7 rows are flagged for the user, not silently trusted — by design. Tune the prompt/resolver in <code>functions/</code>, and add a fixture.</li>
+        <li><strong>A protocol capture is needed.</strong> Run the self-heal Job during trading hours to fill <code>packages/ls-protocol/protocol.config.v1</code> — exactly what the replay gate verifies.</li>
+        <li><strong>Shipping the docs.</strong> Edit under <code>site/</code>, push to <code>main</code>; <a href="deploy.html#pages"><code>pages.yml</code></a> publishes it.</li>
+      </ul>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>cancri · live-portfolio-terminal · MIT · <a href="https://github.com/t11z/cancri">github.com/t11z/cancri</a></span>
+    <span class="sig"><code>booting… → mounting workspace…</code> ▮</span>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

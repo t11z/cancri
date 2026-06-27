@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Deploy — cancri docs</title>
+<meta name="description" content="Deploy cancri to Firebase: the keyless CI pipeline (Workload Identity Federation), a one-shot manual deploy script, and the full going-live runway for Vertex, Cloud Run, and WIF." />
+<link rel="icon" href="assets/cancri-logo-mark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/cancri.css" />
+</head>
+<body>
+
+<header class="term-header">
+  <a class="brand" href="index.html"><img class="logo" src="assets/cancri-logo-mark.png" alt="" width="26" height="26" /><span class="mark">CANCRI</span><span class="lpt">DOCS · v0.4</span></a>
+  <nav class="nav">
+    <a href="index.html">overview</a>
+    <a href="quickstart.html">quickstart</a>
+    <a href="usage.html">usage</a>
+    <a href="contributing.html">contributing</a>
+    <a href="deploy.html" class="active">deploy</a>
+    <a href="maintaining.html">maintaining</a>
+  </nav>
+  <button class="nav-toggle" aria-label="Toggle navigation">menu</button>
+  <div class="header-status">
+    <span class="dot live" aria-hidden="true"></span>
+    <span class="label">DOCS</span>
+    <span class="clock" data-clock>--:--:-- ET</span>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="doc">
+    <aside class="toc">
+      <p class="toc-label">on this page</p>
+      <a href="#paths">Two paths</a>
+      <a href="#manual">Manual one-shot deploy</a>
+      <a href="#ci">Keyless CI deploy</a>
+      <a href="#runway">Going-live runway</a>
+      <a href="#firebase">1 · Firebase project</a>
+      <a href="#vertex">2 · Gemini via Vertex</a>
+      <a href="#wif">3 · Workload Identity Federation</a>
+      <a href="#fills">4 · The live fills</a>
+      <a href="#pages">Deploy the docs site</a>
+    </aside>
+
+    <div class="doc-body">
+      <p class="section-label">maintainer</p>
+      <h1 style="font-size:clamp(26px,5vw,40px);margin:0 0 10px;color:var(--c-text-primary);">Deploy to Firebase</h1>
+      <p class="lead">The codebase is complete and emulator-verified. Bringing it up against real infrastructure is a
+        one-time provisioning pass. There are two ways to push it — a <strong>manual one-shot</strong> from your machine,
+        and a <strong>keyless CI pipeline</strong> on every push to <code>main</code>.</p>
+
+      <div class="callout info">
+        <span class="ic">◆</span>
+        <p>A deploy workflow already exists: <a href="https://github.com/t11z/cancri/blob/main/.github/workflows/deploy.yml"><code>.github/workflows/deploy.yml</code></a>.
+          It deploys Hosting + Functions + rules via <strong>Workload Identity Federation</strong> (no stored key) and rolls
+          the Cloud Run feed-engine. It's gated by a repo variable until you've provisioned the GCP side — the
+          <a href="#runway">runway</a> below walks you through arming it.</p>
+      </div>
+
+      <h2 id="paths">Two paths</h2>
+      <div class="grid cols-2">
+        <div class="panel">
+          <h4><span class="pill up">manual</span> one-shot, from your machine</h4>
+          <p class="muted"><code>scripts/deploy.sh</code> — containerised, builds web + functions and pushes Hosting,
+            Functions, and rules. Best for a first deploy, a hotfix, or a project without WIF yet.</p>
+        </div>
+        <div class="panel">
+          <h4><span class="pill info">automated</span> keyless CI</h4>
+          <p class="muted"><code>deploy.yml</code> — on push to <code>main</code> (and <code>workflow_dispatch</code>).
+            Authenticates via WIF, deploys the Firebase surfaces, and builds + deploys the Cloud Run feed-engine.</p>
+        </div>
+      </div>
+
+      <h2 id="manual">Manual one-shot deploy</h2>
+      <p>The hands-on counterpart to the CI pipeline. Everything runs in a <code>node:26</code> container — the host only
+        needs Docker. It builds the web app and functions, then runs <code>firebase deploy</code>.</p>
+      <ol class="steps">
+        <li>
+          <h4>Pick your auth</h4>
+          <p>Non-interactive (CI token) or interactive login inside the container:</p>
+          <div class="code">
+            <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">bash · auth options</span><button class="copy">copy</button></div>
+<pre><code><span class="c-cmt"># option A — token (non-interactive)</span>
+export FIREBASE_TOKEN="$(firebase login:ci)"
+
+<span class="c-cmt"># option B — leave it unset; the script runs `firebase login` in-container</span></code></pre>
+          </div>
+        </li>
+        <li>
+          <h4>Deploy</h4>
+          <p>Point it at your project id. It builds, then deploys Hosting + Functions + Firestore/RTDB rules.</p>
+          <div class="code">
+            <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">bash</span><button class="copy">copy</button></div>
+<pre><code>FIREBASE_PROJECT=your-project-id scripts/deploy.sh</code></pre>
+          </div>
+        </li>
+        <li>
+          <h4>Narrow the scope (optional)</h4>
+          <p>Deploy just one surface — e.g. a Hosting-only push for a UI change:</p>
+          <div class="code">
+            <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">bash</span><button class="copy">copy</button></div>
+<pre><code>CANCRI_DEPLOY_ONLY=hosting FIREBASE_PROJECT=your-project-id scripts/deploy.sh</code></pre>
+          </div>
+        </li>
+      </ol>
+      <div class="callout warn">
+        <span class="ic">▲</span>
+        <p>The manual script deploys the <strong>Firebase</strong> surfaces (Hosting, Functions, rules). It does
+          <strong>not</strong> build the Cloud Run feed-engine image — that's the always-on price source. Without it the
+          terminal authenticates and onboards, but no live ticks flow. Roll the feed-engine via the
+          <a href="#ci">CI pipeline</a> or the <a href="#fills">runway</a>.</p>
+      </div>
+
+      <h2 id="ci">Keyless CI deploy</h2>
+      <p>On push to <code>main</code>, <code>deploy.yml</code> authenticates to GCP with a short-lived OIDC token
+        (no JSON key in the repo), then:</p>
+      <ul class="clean">
+        <li>builds the web app + functions;</li>
+        <li><code>firebase-tools deploy --only hosting,functions,firestore:rules,database</code>;</li>
+        <li>builds + pushes the <strong>feed-engine</strong> image and <code>gcloud run deploy</code>s it (always-on, single instance, internal ingress).</li>
+      </ul>
+      <p class="muted">The split — <code>firebase-tools</code> for the Firebase surfaces, <code>gcloud</code> for the
+        long-running Cloud Run deploy — keeps the container build off the firebase-tools ADC timeout path.</p>
+      <div class="callout info">
+        <span class="ic">◆</span>
+        <p>The workflow is gated by <code>vars.CANCRI_DEPLOY_ENABLED == 'true'</code>. It stays inert until you've set up
+          WIF + the deployer service account and flip that variable on — exactly the <a href="#runway">runway</a> below.</p>
+      </div>
+
+      <h2 id="runway">Going-live runway</h2>
+      <p>None of this is needed to run locally (<a href="quickstart.html"><code>scripts/quickstart.sh</code></a>). It's the
+        one-time provisioning to arm the CI deploy. The canonical checklist is
+        <a href="https://github.com/t11z/cancri/blob/main/SETUP.md">SETUP.md §4</a>; the shape of it:</p>
+
+      <h3 id="firebase">1 · Firebase project <span class="pill down">irreversible region</span></h3>
+      <ol class="steps">
+        <li><h4>Create a Blaze-plan project</h4><p>Spark blocks the outbound egress to ls-tc.de / Yahoo / Vertex, and Cloud Run / Scheduler / Secret Manager need Blaze.</p></li>
+        <li><h4>Firestore + RTDB in <code>europe-west3</code></h4><p>ADR-0001. <strong>Firestore's location is permanent</strong> — get it right before any data exists.</p></li>
+        <li><h4>Enable Auth providers</h4><p>Email/Password + Google; configure the consent screen and authorized domains. Decide your invite-allowlist policy — this is an access-gated product.</p></li>
+      </ol>
+
+      <h3 id="vertex">2 · Gemini via Vertex AI <span class="pill up">no API key</span></h3>
+      <ul class="clean">
+        <li>Enable the <strong>Vertex AI API</strong>; grant the Functions runtime SA <code>roles/aiplatform.user</code>.</li>
+        <li>Confirm <code>gemini-3.5-flash</code> availability/quota in <code>europe-west3</code>.</li>
+        <li>Set <code>CANCRI_USE_VERTEX=true</code> for the deployed functions. There is <strong>no</strong> Gemini API key — access is via IAM.</li>
+      </ul>
+
+      <h3 id="wif">3 · Workload Identity Federation <span class="pill up">keyless deploy</span></h3>
+      <p><code>deploy.yml</code> authenticates via WIF — no stored JSON key. One-time setup:</p>
+      <ol class="steps">
+        <li><h4>WIF pool + provider</h4><p>With an attribute-condition pinning <code>assertion.repository == 't11z/cancri'</code>.</p></li>
+        <li><h4>A dedicated deployer service account</h4><p>Granted <code>roles/iam.workloadIdentityUser</code> for your repo's <code>principalSet</code>, plus least-privilege deploy roles (<code>firebasehosting.admin</code>, <code>cloudfunctions.admin</code>, <code>run.admin</code>, <code>artifactregistry.writer</code>, …).</p></li>
+        <li><h4>An Artifact Registry Docker repo</h4><p>Named <code>cancri</code> in your region.</p></li>
+        <li><h4>Enable the APIs</h4><p>Cloud Run, Cloud Build, Artifact Registry, Secret Manager, Cloud Scheduler.</p></li>
+        <li>
+          <h4>Set repo Variables, then arm it</h4>
+          <p>Set <code>GCP_PROJECT_ID</code>, <code>GCP_REGION</code> (default <code>europe-west3</code>),
+            <code>WIF_PROVIDER</code>, <code>DEPLOYER_SA</code> — and finally:</p>
+          <div class="code">
+            <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">arm the CI deploy</span><button class="copy">copy</button></div>
+<pre><code>gh variable set CANCRI_DEPLOY_ENABLED --body true</code></pre>
+          </div>
+        </li>
+      </ol>
+
+      <h3 id="fills">4 · The remaining live fills <span class="pill warn">flagged in code</span></h3>
+      <ul class="clean">
+        <li><strong>Secret Manager</strong> entries for the L&amp;S handshake config (<code>LS_cid</code>, magic/idle/polling params, origin) — never in the repo.</li>
+        <li>The first <strong>L&amp;S capture</strong> (the self-heal Job, during trading hours) fills <code>packages/ls-protocol/protocol.config.v1</code> with the real handshake bytes / frame offsets — exactly what the replay gate verifies.</li>
+        <li>A <strong>Playwright Dockerfile</strong> for <code>services/selfheal</code>, then <code>gcloud run jobs deploy</code>.</li>
+        <li>A <strong>logo provider</strong> behind <code>resolveLogo</code>'s fetcher (monogram-only until then).</li>
+        <li>Branch-protect <code>main</code> to require the <strong>replay-regression</strong> check + ≥1 human review for self-heal PRs.</li>
+      </ul>
+
+      <hr />
+
+      <h2 id="pages">Deploy the docs site</h2>
+      <p>This documentation site is hand-authored static HTML/CSS in <code>site/</code> — no build step. It ships to
+        <strong>GitHub Pages</strong> via its own workflow,
+        <a href="https://github.com/t11z/cancri/blob/main/.github/workflows/pages.yml"><code>.github/workflows/pages.yml</code></a>,
+        on any push to <code>main</code> that touches <code>site/</code>.</p>
+      <ol class="steps">
+        <li>
+          <h4>Turn Pages on (one time)</h4>
+          <p>Repo <strong>Settings → Pages → Build and deployment → Source = “GitHub Actions.”</strong></p>
+        </li>
+        <li>
+          <h4>Push a change under <code>site/</code></h4>
+          <p>The workflow uploads the folder and deploys it. The site lives at
+            <code>https://t11z.github.io/cancri/</code> — all links are relative, so it works under the <code>/cancri/</code> subpath.</p>
+        </li>
+        <li>
+          <h4>Preview locally (optional)</h4>
+          <p>Any static server works, e.g.:</p>
+          <div class="code">
+            <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">bash · preview the docs</span><button class="copy">copy</button></div>
+<pre><code>cd site &amp;&amp; python3 -m http.server 8080   <span class="c-cmt"># → http://localhost:8080</span></code></pre>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>cancri · live-portfolio-terminal · MIT · <a href="https://github.com/t11z/cancri">github.com/t11z/cancri</a></span>
+    <span class="sig"><code>booting… → mounting workspace…</code> ▮</span>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+</body>
+</html>
