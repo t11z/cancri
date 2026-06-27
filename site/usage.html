@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Usage — cancri docs</title>
+<meta name="description" content="How to use cancri: sign in, describe or drop your portfolio, let Gemini propose an inventory, confirm it, and read the live dashboard — LIVE vs DELAYED always honest." />
+<link rel="icon" href="assets/cancri-logo-mark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/cancri.css" />
+</head>
+<body>
+
+<header class="term-header">
+  <a class="brand" href="index.html"><span class="mark">CANCRI</span><span class="lpt">DOCS · v0.4</span></a>
+  <nav class="nav">
+    <a href="index.html">overview</a>
+    <a href="quickstart.html">quickstart</a>
+    <a href="usage.html" class="active">usage</a>
+    <a href="contributing.html">contributing</a>
+    <a href="deploy.html">deploy</a>
+    <a href="maintaining.html">maintaining</a>
+  </nav>
+  <button class="nav-toggle" aria-label="Toggle navigation">menu</button>
+  <div class="header-status">
+    <span class="dot live" aria-hidden="true"></span>
+    <span class="label">DOCS</span>
+    <span class="clock" data-clock>--:--:-- ET</span>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="doc">
+    <aside class="toc">
+      <p class="toc-label">on this page</p>
+      <a href="#flow">The flow</a>
+      <a href="#signin">1 · Sign in</a>
+      <a href="#onboard">2 · Feed the terminal</a>
+      <a href="#confirm">3 · Confirm the inventory</a>
+      <a href="#dashboard">4 · Read the dashboard</a>
+      <a href="#freshness">Freshness: live vs delayed</a>
+      <a href="#states">States the terminal can be in</a>
+      <a href="#a11y">Accessibility & motion</a>
+      <a href="#faq">FAQ</a>
+    </aside>
+
+    <div class="doc-body">
+      <p class="section-label">02 — use it</p>
+      <h1 style="font-size:clamp(26px,5vw,40px);margin:0 0 10px;color:var(--c-text-primary);">Usage</h1>
+      <p class="lead">cancri is <strong>read-only</strong> — it shows positions and live prices. No orders, no trading.
+        You describe your book once, confirm what the machine proposes, and then leave the terminal open.</p>
+
+      <h2 id="flow">The flow</h2>
+      <div class="code">
+        <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">primary path</span></div>
+<pre><code><span class="c-ok">boot</span> ─▶ <span class="c-net">auth</span> ─▶ <span class="c-llm">onboard</span> ─▶ <span class="c-warn">confirm</span> ─▶ <span class="c-ok">dash</span>
+       sign in   describe /    the machine    the terminal
+                 drop a file   proposes —     you leave open
+                               you dispose</code></pre>
+      </div>
+      <div class="callout info">
+        <span class="ic">◆</span>
+        <p><strong>Nothing streams until you confirm.</strong> Gemini only <em>proposes</em> a structured inventory;
+          the dashboard goes live only after you explicitly lock it in.</p>
+      </div>
+
+      <h2 id="signin">1 · Sign in</h2>
+      <p>cancri is access-gated. You land on a “secure shell” card and authenticate with Firebase Auth —
+        email + passphrase, or <em>continue with Google</em>. Each user sees only their own book; isolation is
+        enforced by the datastore's security rules, not just the UI.</p>
+      <ul class="clean">
+        <li>Enter <code>user@</code> and your passphrase, then press <span class="pill up">↵ connect</span>.</li>
+        <li>Or use <span class="pill info">continue with Google → firebase</span>.</li>
+        <li>The footer's live pulse confirms the session is <em>secured by firebase auth</em>.</li>
+      </ul>
+
+      <h2 id="onboard">2 · Feed the terminal</h2>
+      <p>Onboarding has two routes that converge on the same normalisation step. <strong>Messy input is fine</strong> —
+        the machine reconciles tickers, quantities, and names.</p>
+      <div class="grid cols-2">
+        <div class="panel">
+          <h4><span style="color:var(--c-info)">▸</span> describe it</h4>
+          <p class="muted">Type your holdings into the Gemini chat in plain language, then <span class="pill">parse ↵</span>.</p>
+          <div class="code" style="margin-top:12px;">
+            <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">gemini · portfolio intake</span></div>
+<pre><code><span class="c-net">&gt;</span> 12 AAPL, 0.5 BTC, 100 msft, ~30 nvidia</code></pre>
+          </div>
+        </div>
+        <div class="panel">
+          <h4><span style="color:var(--c-cyan)">⤓</span> drop a file</h4>
+          <p class="muted">Drop a <code>.csv</code>, <code>.xlsx</code>, or paste text into the dropzone.</p>
+          <ul class="clean" style="margin-top:8px;">
+            <li>Accepted: <code>.csv</code> · <code>.xlsx</code> · <code>.xls</code> · pasted text</li>
+            <li>Column order and exact names don't matter — Gemini reconciles them.</li>
+          </ul>
+        </div>
+      </div>
+      <p class="muted">Both routes hand off to the same step: <em>Gemini normalises your input into a structured inventory
+        keyed on ISIN/symbol.</em> The machine proposes — you dispose.</p>
+
+      <h2 id="confirm">3 · Confirm the inventory</h2>
+      <p>You land on an editable terminal table of what Gemini parsed. The header reads, e.g.,
+        <span class="dim">“gemini parsed 7 instruments · 2 flagged for your eye.”</span> Each row carries a
+        <strong>confidence</strong> signal — and low-confidence rows are flagged for review, never silently trusted.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>confidence</th><th>meaning</th><th>treatment</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill up">≥ 0.9</span></td><td>high — clean match</td><td>mint bar, accepted as-is</td></tr>
+            <tr><td><span class="pill info">0.7 – 0.9</span></td><td>medium</td><td>violet bar, double-check</td></tr>
+            <tr><td><span class="pill warn">&lt; 0.7</span></td><td>low — ambiguous</td><td>amber bar + <em>review</em> flag + tinted row</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul class="clean">
+        <li>Edit any <strong>quantity</strong> inline; fix anything the machine got wrong.</li>
+        <li>Press <span class="pill up">✓ lock inventory &amp; go live</span> to start streaming.</li>
+        <li>Or <span class="pill">‹ back to intake</span> to add more. <strong>Nothing streams until you confirm.</strong></li>
+      </ul>
+
+      <h2 id="dashboard">4 · Read the dashboard</h2>
+      <p>This is the terminal you leave open. The header shows your <strong>portfolio value</strong>, the
+        <strong>day change</strong> (arrow + signed absolute + percent), the connection master (LIVE/DELAYED with a
+        pulsing dot), and the market clock in ET. Each row is one instrument.</p>
+      <div class="code">
+        <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">dashboard · row anatomy</span></div>
+<pre><code>LOGO  INSTRUMENT      QTY   LAST      DAY Δ      DAY %    5M TREND   POSITION    FEED
+ <span class="c-net">▣</span>    <span class="c-net">AAPL</span> Apple Inc   12   <span class="c-ok">227.41</span>  <span class="c-ok">▲ +1.83</span>   <span class="c-ok">+0.81%</span>   ╱╲╱‾    <span class="c-ok">2,728.92</span>   <span class="c-ok">● LIVE</span>
+ <span class="c-net">▣</span>    <span class="c-net">BTC</span>  Bitcoin    0.5   <span class="c-down">61,204</span>  <span class="c-down">▼ −742</span>   <span class="c-down">−1.20%</span>   ‾╲╱╲    <span class="c-down">30,602</span>    <span class="c-warn">◐ DELAYED</span></code></pre>
+      </div>
+      <div class="kv">
+        <dt>LAST</dt><dd>the live price. On each tick the cell flashes — <span style="color:var(--c-up)">mint up</span>, <span style="color:var(--c-down)">rose down</span> — and the number rolls (odometer feel), never snapping.</dd>
+        <dt>DAY Δ / DAY %</dt><dd>change since previous close, always with an arrow and a sign — direction is never colour-only.</dd>
+        <dt>5M TREND</dt><dd>a live sparkline that appends a point and redraws on every tick; coloured by the day's direction.</dd>
+        <dt>POSITION</dt><dd>quantity × last price.</dd>
+        <dt>FEED</dt><dd>per-instrument freshness — <span style="color:var(--c-up)">LIVE</span> or <span style="color:var(--c-warn)">DELAYED</span>, by dot, rhythm, <em>and</em> text.</dd>
+      </div>
+      <p class="muted">The footer keeps a running tally: <span class="dim">N live · M delayed · P positions · ticks · latency(ms)</span>.</p>
+
+      <h2 id="freshness">Freshness: live vs delayed</h2>
+      <p>The single most important thing cancri tells you is whether what you're looking at is real-time.
+        It is shown three ways at once, so it survives colour-blindness, glances, and muted displays:</p>
+      <div class="grid cols-2">
+        <div class="panel">
+          <h4><span class="dot live" style="margin-right:6px;"></span>LIVE</h4>
+          <p class="muted">primary source · realtime. Mint dot with a <strong>calm breathing pulse</strong> (1.8s) + the word <code>LIVE</code>.</p>
+        </div>
+        <div class="panel">
+          <h4><span class="dot delayed" style="margin-right:6px;"></span>DELAYED</h4>
+          <p class="muted">fallback · ~15&nbsp;min lag. Amber dot with a <strong>slower, off-beat pulse</strong> (2.6s) + the word <code>DELAYED</code>, always visible.</p>
+        </div>
+      </div>
+      <div class="callout ok">
+        <span class="ic">✓</span>
+        <p><strong>honesty over blackout.</strong> If the primary feed dies, the dashboard doesn't go dark — it stays warm,
+          flips every row to DELAYED, slides in a degraded banner, and lets the latency climb. It never pretends a stale
+          number is live.</p>
+      </div>
+
+      <h2 id="states">States the terminal can be in</h2>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>state</th><th>what you see</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill up">live</span></td><td>Normal operation. Mint master dot, ticks flowing, sparklines drawing.</td></tr>
+            <tr><td><span class="pill warn">degraded</span></td><td>Primary lost. Amber banner: <span class="dim">“showing DELAYED quotes · values may lag ~15 min.”</span> Dashboard stays warm.</td></tr>
+            <tr><td><span class="pill warn">reconnect</span></td><td>A blurred overlay over the still-visible dashboard: <span class="dim">“reconnecting to primary feed… attempt n/5 · holding last quotes.”</span></td></tr>
+            <tr><td><span class="pill info">closed</span></td><td>Market closed. Last close shown; live ticks resume at the next open (09:30 ET).</td></tr>
+            <tr><td><span class="pill">empty</span></td><td>No instruments yet: <span class="dim">“the terminal is hungry.”</span> → <span class="pill">+ feed the terminal</span>.</td></tr>
+            <tr><td><span class="pill down">error</span></td><td>Couldn't reach the primary source. A technical sub-line (socket code, last-good age) + <span class="dim">↻ retry handshake</span>.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="a11y">Accessibility &amp; motion</h2>
+      <ul class="clean">
+        <li><strong>Direction is never colour-only</strong> — every gain/loss carries ▲/▼ and a signed value.</li>
+        <li><strong>Freshness is never colour-only</strong> — LIVE/DELAYED is text + a distinct pulse rhythm, not just hue.</li>
+        <li><strong>Reduced motion is honoured</strong> — <code>prefers-reduced-motion</code> (and an in-app MOTION toggle) calm every animation while preserving the information. Numbers snap instead of rolling; pulses go static but keep their colour and label.</li>
+        <li><strong>Keyboard-operable</strong> — auth submit, intake + parse, quantity edits + lock, and every CTA are real, focusable controls with a visible focus ring.</li>
+        <li><strong>Tabular numerals</strong> everywhere, so rolling values never reflow.</li>
+      </ul>
+
+      <h2 id="faq">FAQ</h2>
+      <h4>Can I place trades?</h4>
+      <p class="muted">No. cancri is strictly read-only — it displays positions and live prices. There are no orders.</p>
+      <h4>Who can see my portfolio?</h4>
+      <p class="muted">Only you. Each user's book is isolated by the datastore's security rules; the client only ever
+        subscribes to your own normalised ticks.</p>
+      <h4>Where do prices come from?</h4>
+      <p class="muted">A real-time primary source with a delayed fallback that doubles as a sanity oracle. The terminal
+        always marks which one you're seeing. The mechanics live on the <a href="maintaining.html">maintaining</a> page.</p>
+      <h4>Why did a row flip to DELAYED?</h4>
+      <p class="muted">The primary feed for that instrument (or the whole engine) lost liveness, so cancri degraded to the
+        fallback rather than show you a stale price as if it were live.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>cancri · live-portfolio-terminal · MIT · <a href="https://github.com/t11z/cancri">github.com/t11z/cancri</a></span>
+    <span class="sig"><code>booting… → mounting workspace…</code> ▮</span>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>cancri — docs · live-portfolio-terminal</title>
+<meta name="description" content="Documentation for cancri, an access-gated real-time web terminal that streams your own portfolio at cent-level latency. Setup, usage, contributing, and deploy." />
+<link rel="icon" href="assets/cancri-logo-mark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/cancri.css" />
+</head>
+<body>
+
+<header class="term-header">
+  <a class="brand" href="index.html"><span class="mark">CANCRI</span><span class="lpt">DOCS · v0.4</span></a>
+  <nav class="nav">
+    <a href="index.html" class="active">overview</a>
+    <a href="quickstart.html">quickstart</a>
+    <a href="usage.html">usage</a>
+    <a href="contributing.html">contributing</a>
+    <a href="deploy.html">deploy</a>
+    <a href="maintaining.html">maintaining</a>
+  </nav>
+  <button class="nav-toggle" aria-label="Toggle navigation">menu</button>
+  <div class="header-status">
+    <span class="dot live" aria-hidden="true"></span>
+    <span class="label">DOCS</span>
+    <span class="clock" data-clock>--:--:-- ET</span>
+  </div>
+</header>
+
+<main>
+  <section class="wrap hero">
+    <h1>a terminal you<br /><span class="accent">leave open.</span></h1>
+    <p class="tagline">cancri is an access-gated, real-time web terminal that streams <em>your own</em> portfolio
+      at cent-level latency. colour and motion carry information — direction, freshness, activity — never
+      decoration. and the terminal always tells the truth about its own data: <span class="pill up">LIVE</span>
+      vs <span class="pill warn">DELAYED</span> is never hidden.</p>
+    <p class="kbd-line">read-only · per-user · onboarding via Gemini · self-healing data layer that opens a PR, never auto-merges.</p>
+
+    <div class="boot" data-boot aria-label="boot sequence">
+      <div class="ln"><span class="tag">[ok]</span>  cancri // live-portfolio-terminal — online <span class="ok"></span></div>
+      <div class="ln"><span class="net">[net]</span> establishing socket → primary feed — handshake</div>
+      <div class="ln"><span class="net">[net]</span> subscribing instruments · L1 quotes</div>
+      <div class="ln"><span class="llm">[llm]</span> gemini intake channel ready</div>
+      <div class="ln"><span class="tag">[ok]</span>  freshness monitor armed · <span class="ok">live/delayed</span></div>
+      <div class="ln"><span class="tag">[ok]</span>  terminal ready <span class="ok">✓</span></div>
+      <div class="caret-line">mounting workspace…<span class="caret" aria-hidden="true"></span></div>
+    </div>
+
+    <div class="hero-cta">
+      <a class="btn primary" href="quickstart.html">↵ run it locally</a>
+      <a class="btn secondary" href="usage.html">how it works</a>
+      <a class="btn ghost" href="https://github.com/t11z/cancri">github →</a>
+    </div>
+  </section>
+
+  <section class="wrap" style="padding-top: 30px;">
+    <p class="section-label">start here</p>
+    <div class="grid cols-3">
+      <a class="door" href="quickstart.html">
+        <span class="step">01 — set it up</span>
+        <h3>Quickstart</h3>
+        <p>One command, one container, zero secrets. Boot the terminal locally against a mock feed in under a minute.</p>
+        <span class="arrow">↳ quickstart</span>
+      </a>
+      <a class="door" href="usage.html">
+        <span class="step">02 — use it</span>
+        <h3>Usage</h3>
+        <p>Describe your holdings, let Gemini propose an inventory, confirm it, and read the live dashboard.</p>
+        <span class="arrow">↳ usage</span>
+      </a>
+      <a class="door" href="contributing.html">
+        <span class="step">03 — contribute</span>
+        <h3>Contributing</h3>
+        <p>Dev loop, tests, the smADR ritual, and the conventions that keep the terminal honest.</p>
+        <span class="arrow">↳ contributing</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="wrap" style="padding-top: 26px;">
+    <div class="grid cols-2">
+      <a class="door" href="deploy.html">
+        <span class="step">maintainer</span>
+        <h3>Deploy to Firebase</h3>
+        <p>The keyless CI pipeline and a one-shot manual deploy — Hosting, Functions, rules, and the Cloud Run feed-engine.</p>
+        <span class="arrow">↳ deploy</span>
+      </a>
+      <a class="door" href="maintaining.html">
+        <span class="step">maintainer</span>
+        <h3>Maintaining</h3>
+        <p>Architecture, the self-heal governance loop, CI gates, secrets, and the going-live runway.</p>
+        <span class="arrow">↳ maintaining</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="wrap" style="padding-top: 56px;">
+    <h2>What it is</h2>
+    <p class="lead">You describe your holdings in plain language (or drop a CSV / Excel), an LLM normalises them into a
+      confirmed inventory, and a live data layer keeps the numbers moving — flashing mint up, rose down, with a
+      sparkline that draws itself on every tick. It is <strong>read-only</strong>: no orders, no trading. Just the
+      truth about your book, beautifully.</p>
+
+    <div class="callout info">
+      <span class="ic">◆</span>
+      <p><strong>the machine proposes — you dispose.</strong> Nothing streams until you confirm your inventory. And the
+        self-healing data layer opens a <em>pull request</em> when the upstream protocol changes — it never merges itself.</p>
+    </div>
+
+    <h2 id="principles">The principles</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>principle</th><th>what it means</th></tr></thead>
+        <tbody>
+          <tr><td><strong>colour = meaning</strong></td><td>up is <span style="color:var(--c-up)">▲ +</span> in mint, down is <span style="color:var(--c-down)">▼ −</span> in rose. Direction is never colour-only.</td></tr>
+          <tr><td><strong>freshness is honest</strong></td><td><span style="color:var(--c-up)">LIVE</span> (mint, calm breathing pulse) vs <span style="color:var(--c-warn)">DELAYED</span> (amber, off-beat) — by colour <em>and</em> rhythm <em>and</em> text.</td></tr>
+          <tr><td><strong>honesty over blackout</strong></td><td>when the primary feed dies, the dashboard doesn't go dark — it flips to the delayed fallback and <em>says so</em>.</td></tr>
+          <tr><td><strong>secrets stay server-side</strong></td><td>the client only ever subscribes to normalised ticks. No source internals, no keys.</td></tr>
+          <tr><td><strong>propose, don't dispose</strong></td><td>the LLM proposes an inventory; the self-heal proposes a PR. A human always confirms.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="architecture">Architecture at a glance</h2>
+    <p class="muted">Every architecture decision is recorded as a
+      <a href="https://github.com/t11z/cancri/tree/main/docs/decisions">Structured MADR</a> (ADR-0001 … ADR-0011).
+      The deeper walkthrough lives on the <a href="maintaining.html">maintaining</a> page.</p>
+    <div class="code">
+      <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">system map</span></div>
+<pre><code><span class="c-dim">browser (Firebase Hosting)</span>  vanilla-TS terminal · single rAF loop · subscribes to ticks only
+        │ reads /quotes,/feed (RTDB, client read-only)   │ callable · Auth + Firestore (the book)
+        ▼                                                ▼
+<span class="c-net">Realtime Database</span>  /quotes/{isin} · /feed/status    <span class="c-llm">Cloud Functions</span>  normalize · confirm · logo (Gemini/Vertex, IAM)
+        ▲ sole writer (Admin SDK)
+<span class="c-ok">Cloud Run: feed-engine</span> (always-on)  FeedManager · SanityOracle · degradation FSM
+        ├─ <span class="c-ok">L&amp;S</span> (primary, real-time · ls-protocol break surface)
+        └─ <span class="c-warn">Yahoo</span> (fallback ~15m · also the sanity oracle)
+        ▲ when the undocumented L&amp;S protocol changes…
+<span class="c-warn">Cloud Run Job: self-heal</span>  Playwright captures frames + rendered price → replay finds the fix → <span class="c-net">reviewable PR</span> (no auto-merge)</code></pre>
+    </div>
+  </section>
+
+  <section class="wrap" style="padding-top: 40px;">
+    <h2>Where to next</h2>
+    <ul class="clean">
+      <li><a href="quickstart.html">Quickstart</a> — run the terminal locally with one command.</li>
+      <li><a href="usage.html">Usage</a> — onboarding, the dashboard, freshness, and every state.</li>
+      <li><a href="contributing.html">Contributing</a> — the dev loop, tests, and the smADR ritual.</li>
+      <li><a href="deploy.html">Deploy</a> — ship it to Firebase (CI or one-shot manual).</li>
+      <li><a href="maintaining.html">Maintaining</a> — architecture, self-heal, CI, and the going-live runway.</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>cancri · live-portfolio-terminal · MIT · <a href="https://github.com/t11z/cancri">github.com/t11z/cancri</a></span>
+    <span class="sig"><code>booting… → mounting workspace…</code> ▮</span>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

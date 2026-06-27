@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contributing — cancri docs</title>
+<meta name="description" content="How to contribute to cancri: the containerised dev loop, the test suites, the smADR architecture-decision ritual, branching, and good first contributions." />
+<link rel="icon" href="assets/cancri-logo-mark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/cancri.css" />
+</head>
+<body>
+
+<header class="term-header">
+  <a class="brand" href="index.html"><span class="mark">CANCRI</span><span class="lpt">DOCS · v0.4</span></a>
+  <nav class="nav">
+    <a href="index.html">overview</a>
+    <a href="quickstart.html">quickstart</a>
+    <a href="usage.html">usage</a>
+    <a href="contributing.html" class="active">contributing</a>
+    <a href="deploy.html">deploy</a>
+    <a href="maintaining.html">maintaining</a>
+  </nav>
+  <button class="nav-toggle" aria-label="Toggle navigation">menu</button>
+  <div class="header-status">
+    <span class="dot live" aria-hidden="true"></span>
+    <span class="label">DOCS</span>
+    <span class="clock" data-clock>--:--:-- ET</span>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="doc">
+    <aside class="toc">
+      <p class="toc-label">on this page</p>
+      <a href="#ethos">Ethos</a>
+      <a href="#ground-rules">Ground rules</a>
+      <a href="#devloop">The dev loop</a>
+      <a href="#repo">Repo map</a>
+      <a href="#tests">Tests &amp; CI</a>
+      <a href="#adr">Architecture decisions</a>
+      <a href="#branching">Branching &amp; PRs</a>
+      <a href="#style">Code style</a>
+      <a href="#firstissues">Good first contributions</a>
+    </aside>
+
+    <div class="doc-body">
+      <p class="section-label">03 — contribute</p>
+      <h1 style="font-size:clamp(26px,5vw,40px);margin:0 0 10px;color:var(--c-text-primary);">Contributing</h1>
+      <div class="code" style="margin-top:18px;">
+        <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">welcome</span></div>
+<pre><code><span class="c-net">&gt;</span> welcome. the machine proposes — you dispose.</code></pre>
+      </div>
+
+      <h2 id="ethos">Ethos</h2>
+      <p class="lead">cancri is a read-only live-portfolio terminal with a strong point of view:
+        <strong>colour and motion carry meaning, the terminal is honest about its data, and humans confirm everything.</strong>
+        Contributions that respect that ethos are very welcome.</p>
+
+      <h2 id="ground-rules">Ground rules</h2>
+      <div class="grid cols-2">
+        <div class="panel">
+          <h4>English artifacts</h4>
+          <p class="muted">Code, comments, commits, PRs, docs, and ADRs are <strong>English</strong>. Chat with the maintainer happens in their language; the repo speaks English.</p>
+        </div>
+        <div class="panel">
+          <h4>Decisions go in smADRs</h4>
+          <p class="muted">Architecture decisions live in <code>docs/decisions/</code> as Structured MADRs — not in code comments or prose.</p>
+        </div>
+        <div class="panel">
+          <h4>No secrets, ever</h4>
+          <p class="muted">Source access and key-touching calls run server-side. The client only subscribes to normalised ticks. Never commit <code>.env</code>, keys, or tokens.</p>
+        </div>
+        <div class="panel">
+          <h4>Propose, don't dispose</h4>
+          <p class="muted">No silent adoption, no auto-merge — for the LLM inventory and the self-heal PR alike. A human always confirms.</p>
+        </div>
+      </div>
+
+      <h2 id="devloop">The dev loop</h2>
+      <p>Everything runs in a <code>node:26</code> container; <strong>the host only needs Docker</strong> — no Node, no
+        Firebase project, no secrets. See <a href="quickstart.html">Quickstart</a> for the one-shot.</p>
+      <div class="code">
+        <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">bash</span><button class="copy">copy</button></div>
+<pre><code>scripts/dev.sh        <span class="c-cmt"># run the terminal with a mock feed → http://localhost:5173</span>
+scripts/build.sh      <span class="c-cmt"># typecheck every package + production-build the web app</span></code></pre>
+      </div>
+      <p class="muted">The dev build ships the dev-only <code>// review</code> bar to jump between every screen and
+        dashboard state. No backend needed.</p>
+
+      <h2 id="repo">Repo map</h2>
+      <div class="code">
+        <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">monorepo</span></div>
+<pre><code><span class="c-net">apps/web/</span>                  the terminal SPA (Vite, vanilla TS, single rAF loop)
+<span class="c-net">services/feed-engine/</span>      always-on Cloud Run: L&amp;S + Yahoo taps, oracle, FSM, sole RTDB writer
+<span class="c-net">services/selfheal/</span>         Cloud Run Job: capture-and-diff → gated PR
+<span class="c-net">functions/</span>                 Gemini normalise/confirm + logo (Vertex AI, IAM, no keys)
+<span class="c-net">packages/data-contracts/</span>   the one shared seam: Tick, SourceAdapter, inventory schema
+<span class="c-net">packages/ls-protocol/</span>       the L&amp;S break surface + deterministic replay (self-heal target)
+<span class="c-net">packages/selfheal-core/</span>     pure fix-search + replay gate + fixture corpus
+<span class="c-net">packages/sim-source/</span>        in-browser mock feed (drives local dev with zero backend)
+<span class="c-net">tools/tokens/</span>              design tokens generated from design/cancri.handover.json
+<span class="c-net">config/</span>                   firestore.rules · database.rules.json · indexes
+<span class="c-net">design/</span>                   the Claude Design handover — source of truth for all UI</code></pre>
+      </div>
+
+      <h2 id="tests">Tests &amp; CI</h2>
+      <p>Each package has a <code>vitest</code> suite. The security rules, persistence, and tick-bus run against the
+        Firebase Emulator Suite (needs a JDK; the containerised flow handles it). <strong>Please keep PRs green.</strong></p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>check</th><th>what it runs</th></tr></thead>
+          <tbody>
+            <tr><td><strong>CI / verify</strong></td><td>typecheck (all) + web build + non-emulator unit tests.</td></tr>
+            <tr><td><strong>CI / rules</strong></td><td>security rules + persistence + tick-bus on the emulators.</td></tr>
+            <tr><td><strong>Validate ADRs</strong></td><td>smADR schema check on <code>docs/decisions/</code>.</td></tr>
+            <tr><td><strong>ls replay regression</strong></td><td>the self-heal merge gate + bounded-surface check.</td></tr>
+            <tr><td><strong>Security Review</strong></td><td>OAuth-authenticated review of the diff.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">Run the security review locally before pushing security-relevant changes — in Claude Code:
+        <code>/security-review</code>.</p>
+
+      <h2 id="adr">Architecture decisions (smADR)</h2>
+      <p>Architecture lives in <code>docs/decisions/</code> as Structured MADR. Write an ADR when a decision:</p>
+      <ul class="clean">
+        <li>is hard to reverse, or</li>
+        <li>spans multiple layers, a public interface, or a contract, or</li>
+        <li>pins an invariant, a provider, or a stack building block, or</li>
+        <li>displaces a plausible alternative worth recording.</li>
+      </ul>
+      <p class="muted"><strong>Don't</strong> write an ADR for implementation details, local refactors, naming, helpers, or
+        test layout. When unsure, open one in <code>proposed</code> status. ADRs are append-only — once
+        <code>accepted</code>, supersede instead of editing.</p>
+      <div class="code">
+        <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">new ADR</span><button class="copy">copy</button></div>
+<pre><code><span class="c-cmt"># in Claude Code</span>
+/adr-new
+<span class="c-cmt"># …or copy the template by hand</span>
+cp docs/decisions/adr-template.md docs/decisions/00NN-your-decision.md</code></pre>
+      </div>
+
+      <h2 id="branching">Branching &amp; PRs</h2>
+      <ol class="steps">
+        <li>
+          <h4>Branch off <code>main</code></h4>
+          <p>Open the PR against <code>main</code>. Don't stack PRs — a merge lands in the PR's <em>base</em>, so stacked bases never reach <code>main</code>.</p>
+        </li>
+        <li>
+          <h4>Conventional-commit-ish titles</h4>
+          <p><code>feat(...)</code>, <code>fix(...)</code>, <code>docs(...)</code>, <code>chore(...)</code>.</p>
+        </li>
+        <li>
+          <h4>Fill the PR template honestly</h4>
+          <p>Especially the <strong>Architecture impact</strong> checklist: does this need an ADR? Is one added? Or is it an implementation detail?</p>
+        </li>
+        <li>
+          <h4>Keep it green</h4>
+          <p>Run <code>scripts/build.sh</code> locally; for security-relevant changes run <code>/security-review</code> before pushing.</p>
+        </li>
+      </ol>
+
+      <h2 id="style">Code style</h2>
+      <ul class="clean">
+        <li><strong>TypeScript, strict.</strong> No <code>any</code> — use <code>unknown</code> + a guard or a concrete type. Honour the shared <code>tsconfig.base.json</code> (<code>noUncheckedIndexedAccess</code>, <code>verbatimModuleSyntax</code>, …).</li>
+        <li><strong>The <code>design/</code> handover is the source of truth for everything visual.</strong> UI tokens are generated from <code>design/cancri.handover.json</code> — never hand-edit the generated files; re-run <code>pnpm tokens</code>.</li>
+        <li><strong>The <code>data-contracts</code> package is the only seam</strong> between client and server. Nothing source-specific (Lightstreamer frames, protobuf, internal ids) may cross it.</li>
+        <li>Match the surrounding code; keep diffs minimal and focused.</li>
+      </ul>
+      <div class="callout info">
+        <span class="ic">◆</span>
+        <p>Editing the <strong>docs site</strong> (this site lives in <code>site/</code>)? It's hand-authored static
+          HTML/CSS — no build step. Open the files directly or serve the folder, push to <code>main</code>, and the
+          <a href="deploy.html#pages">Pages workflow</a> publishes it. Keep using the cancri tokens in
+          <code>site/assets/cancri.css</code> so the optics stay consistent.</p>
+      </div>
+
+      <h2 id="firstissues">Good first contributions</h2>
+      <div class="grid cols-2">
+        <div class="panel">
+          <h4>A logo provider</h4>
+          <p class="muted">Behind <code>resolveLogo</code>'s injected fetcher (<code>functions/src/logo.ts</code>). Monogram-only until then.</p>
+        </div>
+        <div class="panel">
+          <h4>Protocol fixtures</h4>
+          <p class="muted">More fixtures for the L&amp;S corpus / additional decode edge cases.</p>
+        </div>
+        <div class="panel">
+          <h4>Accessibility passes</h4>
+          <p class="muted">Focus order, reduced-motion parity on the terminal UI.</p>
+        </div>
+        <div class="panel">
+          <h4>Yahoo venue coverage</h4>
+          <p class="muted">More venue suffixes and <code>PricingData</code> schema hardening.</p>
+        </div>
+      </div>
+      <p class="muted">By contributing you agree to the
+        <a href="https://github.com/t11z/cancri/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a> and that your work is
+        licensed under the <a href="https://github.com/t11z/cancri/blob/main/LICENSE">MIT License</a>. The canonical
+        text is <a href="https://github.com/t11z/cancri/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>cancri · live-portfolio-terminal · MIT · <a href="https://github.com/t11z/cancri">github.com/t11z/cancri</a></span>
+    <span class="sig"><code>booting… → mounting workspace…</code> ▮</span>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

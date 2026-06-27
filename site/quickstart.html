@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quickstart — cancri docs</title>
+<meta name="description" content="Set up cancri in one shot. Run the live-portfolio-terminal locally with Docker — no Node, no Firebase project, no secrets." />
+<link rel="icon" href="assets/cancri-logo-mark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/cancri.css" />
+</head>
+<body>
+
+<header class="term-header">
+  <a class="brand" href="index.html"><span class="mark">CANCRI</span><span class="lpt">DOCS · v0.4</span></a>
+  <nav class="nav">
+    <a href="index.html">overview</a>
+    <a href="quickstart.html" class="active">quickstart</a>
+    <a href="usage.html">usage</a>
+    <a href="contributing.html">contributing</a>
+    <a href="deploy.html">deploy</a>
+    <a href="maintaining.html">maintaining</a>
+  </nav>
+  <button class="nav-toggle" aria-label="Toggle navigation">menu</button>
+  <div class="header-status">
+    <span class="dot live" aria-hidden="true"></span>
+    <span class="label">DOCS</span>
+    <span class="clock" data-clock>--:--:-- ET</span>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="doc">
+    <aside class="toc">
+      <p class="toc-label">on this page</p>
+      <a href="#oneshot">One-shot quickstart</a>
+      <a href="#prereqs">Prerequisites</a>
+      <a href="#whatyousee">What you'll see</a>
+      <a href="#review-bar">The review bar</a>
+      <a href="#commands">Everyday commands</a>
+      <a href="#emulator">Full emulator suite</a>
+      <a href="#troubleshooting">Troubleshooting</a>
+      <a href="#next">Next steps</a>
+    </aside>
+
+    <div class="doc-body">
+      <p class="section-label">01 — set it up</p>
+      <h1 style="font-size:clamp(26px,5vw,40px);margin:0 0 10px;color:var(--c-text-primary);">Quickstart</h1>
+      <p class="lead">Boot the cancri terminal locally in one shot, against an in-browser mock feed.
+        <strong>No Node on your machine, no Firebase project, no secrets.</strong> The only host requirement is Docker —
+        everything else runs in a <code>node:26</code> container.</p>
+
+      <h2 id="oneshot">One-shot quickstart</h2>
+      <p>Clone the repo and run the quickstart script. First run pulls dependencies and generates design tokens
+        (the slow one); after that it's a few seconds.</p>
+      <div class="code">
+        <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">bash</span><button class="copy">copy</button></div>
+<pre><code>git clone https://github.com/t11z/cancri.git
+cd cancri
+scripts/quickstart.sh        <span class="c-cmt"># → http://localhost:5173</span></code></pre>
+      </div>
+
+      <p>That's it. The script checks Docker is present and running, then boots the terminal. When you see Vite's
+        banner, open <a href="http://localhost:5173">localhost:5173</a>.</p>
+
+      <div class="callout ok">
+        <span class="ic">✓</span>
+        <p><code>scripts/quickstart.sh</code> is the guided one-shot: it validates Docker, warns if the port is busy, and
+          streams the boot output in cancri's own colours. Under the hood it runs the same container as
+          <code>scripts/dev.sh</code> — one source of truth for how the web app boots.</p>
+      </div>
+
+      <h2 id="prereqs">Prerequisites</h2>
+      <dl class="kv">
+        <dt>Docker</dt><dd>Docker Desktop (macOS / Windows) or Docker Engine (Linux), running. <strong>This is the only host requirement.</strong></dd>
+        <dt>git</dt><dd>To clone the repository.</dd>
+        <dt>Node</dt><dd><span class="pill">not required</span> — it lives inside the container.</dd>
+        <dt>Firebase</dt><dd><span class="pill">not required</span> for local dev — the mock feed needs no backend.</dd>
+      </dl>
+      <p class="muted">On Windows, run the script from a shell that has Docker on its <code>PATH</code> (e.g. WSL).
+        Override the image or port with <code>CANCRI_NODE_IMAGE</code> / <code>CANCRI_DEV_PORT</code> if you need to.</p>
+
+      <h2 id="whatyousee">What you'll see</h2>
+      <p>The terminal boots through its sequence and lands on the auth gate. Because there's no backend in local dev,
+        the <a href="usage.html">onboarding and dashboard</a> are driven by a mock feed and the dev-only review bar.</p>
+      <div class="code">
+        <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">boot · localhost:5173</span></div>
+<pre><code><span class="c-ok">[ok]</span>  cancri // live-portfolio-terminal — online
+<span class="c-net">[net]</span> establishing socket → primary feed — handshake
+<span class="c-net">[net]</span> subscribing instruments · L1 quotes
+<span class="c-llm">[llm]</span> gemini intake channel ready
+<span class="c-ok">[ok]</span>  freshness monitor armed · live/delayed
+<span class="c-ok">[ok]</span>  terminal ready ✓
+<span class="c-ok">mounting workspace…</span> ▮</code></pre>
+      </div>
+
+      <h2 id="review-bar">The review bar</h2>
+      <p>The local dev build ships a dev-only <code>// review</code> bar that jumps between every screen and dashboard
+        state — so you can inspect the whole terminal without wiring up a backend. <strong>It never ships to users.</strong></p>
+      <div class="grid cols-2">
+        <div class="panel">
+          <h4>screens</h4>
+          <ul class="clean">
+            <li><span class="pill">boot</span> the startup sequence</li>
+            <li><span class="pill">auth</span> the secure-shell gate</li>
+            <li><span class="pill">onboard</span> Gemini intake</li>
+            <li><span class="pill">confirm</span> proposed inventory</li>
+            <li><span class="pill">dash</span> the live dashboard</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h4>dashboard states</h4>
+          <ul class="clean">
+            <li><span class="pill up">live</span> primary feed, realtime</li>
+            <li><span class="pill warn">degraded</span> fallback, delayed quotes</li>
+            <li><span class="pill warn">reconnect</span> holding last quotes</li>
+            <li><span class="pill info">closed</span> market closed, last close</li>
+            <li><span class="pill">empty</span> / <span class="pill down">error</span> edge states</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 id="commands">Everyday commands</h2>
+      <p>All three scripts are containerised — no host Node. They share a cached <code>pnpm</code> store volume.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>command</th><th>what it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>scripts/quickstart.sh</code></td><td>Guided one-shot: checks Docker, then runs the terminal locally with a mock feed.</td></tr>
+            <tr><td><code>scripts/dev.sh</code></td><td>The plain dev server (same container) → <code>localhost:5173</code>.</td></tr>
+            <tr><td><code>scripts/build.sh</code></td><td>Typecheck every package + produce the production web build.</td></tr>
+            <tr><td><code>scripts/deploy.sh</code></td><td>Manual Firebase deploy from your machine (see <a href="deploy.html">Deploy</a>).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="emulator">Full Firebase emulator suite</h2>
+      <p>The mock feed is enough to explore the UI. To exercise the <em>real</em> data paths — auth, per-user persistence,
+        the security rules, Gemini normalisation, and the RTDB tick bus — run the Firebase Emulator Suite. It needs a JDK
+        (the Firestore / Database emulators are Java); the containerised flow handles that for you.</p>
+      <div class="code">
+        <div class="code-head"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="name">bash · emulator-backed checks</span><button class="copy">copy</button></div>
+<pre><code><span class="c-cmt"># security rules + per-user persistence + tick-bus, against the emulators</span>
+firebase emulators:exec --only auth,firestore,database --project demo-cancri \
+  "pnpm --filter @cancri/rules-tests exec vitest run &&
+   pnpm --filter @cancri/web exec vitest run src/persistence.test.ts src/rtdb-source.test.ts"</code></pre>
+      </div>
+      <p class="muted">This is exactly what CI's <code>rules</code> job runs. The full emulator + going-live runway
+        (Vertex, Cloud Run, WIF) is documented under <a href="deploy.html">Deploy</a> and
+        <a href="https://github.com/t11z/cancri/blob/main/SETUP.md">SETUP.md</a>.</p>
+
+      <h2 id="troubleshooting">Troubleshooting</h2>
+      <div class="callout warn">
+        <span class="ic">▲</span>
+        <p><strong>“Docker not found” / “not running”.</strong> Install Docker Desktop or Engine and start the daemon.
+          The script refuses to continue without it — it's the one thing it can't substitute.</p>
+      </div>
+      <div class="callout warn">
+        <span class="ic">▲</span>
+        <p><strong>Port 5173 is busy.</strong> Set <code>CANCRI_DEV_PORT=5180 scripts/quickstart.sh</code> (Vite binds with
+          <code>--strictPort</code>, so a busy port fails fast rather than silently moving).</p>
+      </div>
+      <div class="callout warn">
+        <span class="ic">▲</span>
+        <p><strong>First run is slow.</strong> The first <code>pnpm install</code> populates the cached store volume; later
+          runs reuse it and start in seconds.</p>
+      </div>
+
+      <h2 id="next">Next steps</h2>
+      <ul class="clean">
+        <li><a href="usage.html">Usage</a> — walk the onboarding flow and read the dashboard.</li>
+        <li><a href="contributing.html">Contributing</a> — the dev loop, tests, and the smADR ritual.</li>
+        <li><a href="deploy.html">Deploy</a> — ship it to Firebase when you're ready.</li>
+      </ul>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span>cancri · live-portfolio-terminal · MIT · <a href="https://github.com/t11z/cancri">github.com/t11z/cancri</a></span>
+    <span class="sig"><code>booting… → mounting workspace…</code> ▮</span>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+</body>
+</html>
