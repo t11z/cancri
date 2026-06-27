@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": [],
+    "paths": {
+      "@cancri/data-contracts": ["../data-contracts/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}

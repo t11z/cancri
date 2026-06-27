@@ -1,0 +1,26 @@
+# Validates Structured MADR documents under docs/decisions/ against the smADR spec.
+name: Validate ADRs
+
+on:
+  push:
+    paths:
+      - 'docs/decisions/**'
+  pull_request:
+    paths:
+      - 'docs/decisions/**'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Validate Structured MADR
+        uses: zircote/structured-madr@1885ace5d825e2b2982505e28468dd4f5ba1d1c0 # v1.2.0
+        with:
+          path: docs/decisions
+          strict: 'false'

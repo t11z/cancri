@@ -1,0 +1,37 @@
+/* Generated tokens (CSS vars + keyframes) — produced by tools/tokens from the handover. */
+@import "../generated/tokens.css";
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--c-app);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: #7b5cff55;
+}
+
+#app {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background: var(--c-app);
+  color: var(--c-text-body);
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Keyboard accessibility: visible focus ring (handover suggests 2px accent.cyan). */
+:focus-visible {
+  outline: 2px solid var(--c-cyan);
+  outline-offset: 2px;
+}

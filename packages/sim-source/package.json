@@ -1,0 +1,19 @@
+{
+  "name": "@cancri/sim-source",
+  "version": "0.0.0",
+  "private": true,
+  "description": "In-browser mock SourceAdapter — drives the Phase-1 local slice and every dashboard state (ADR-0006, packages/sim-source).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cancri/data-contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}

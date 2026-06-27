@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# generated (regenerated from design/ by tools/tokens)
+**/src/generated/
+
+# env / secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+serviceAccount*.json
+
+# firebase / emulator
+.firebase/
+firebase-debug.log
+firestore-debug.log
+database-debug.log
+ui-debug.log
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

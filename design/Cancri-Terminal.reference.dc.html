@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#05070b;}
+  *{box-sizing:border-box;}
+  ::selection{background:#7b5cff55;}
+  @keyframes pulseLive{0%,100%{opacity:.35;transform:scale(.85);}50%{opacity:1;transform:scale(1.15);}}
+  @keyframes pulseDelayed{0%,55%,100%{opacity:.45;}60%{opacity:1;}}
+  @keyframes shimmer{0%{background-position:-120px 0;}100%{background-position:120px 0;}}
+  @keyframes caret{0%,49%{opacity:1;}50%,100%{opacity:0;}}
+  @keyframes bootline{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+  @keyframes scan{from{transform:translateY(-100%);}to{transform:translateY(100%);}}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</helmet>
+<div style="{{ rootStyle }}">
+
+  <!-- ================= BOOT ================= -->
+  <sc-if value="{{ isBoot }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:0 8vw;font-family:'JetBrains Mono',monospace;background:#05070b;z-index:5;">
+    <div style="font-size:13px;line-height:1.9;color:#6b7787;max-width:760px;">
+      <sc-for list="{{ bootLines }}" as="ln" hint-placeholder-count="4">
+        <div style="{{ ln.style }}"><span style="color:#39424f;">{{ ln.tag }}</span> {{ ln.text }}<span style="{{ ln.ok }}"> {{ ln.okTxt }}</span></div>
+      </sc-for>
+    </div>
+    <div style="margin-top:26px;font-size:13px;color:#36f9d0;text-shadow:0 0 14px #36f9d066;">{{ bootCaret }}<span style="display:inline-block;width:9px;height:15px;background:#36f9d0;margin-left:3px;vertical-align:-2px;animation:caret 1s steps(1) infinite;box-shadow:0 0 10px #36f9d0;"></span></div>
+  </div>
+  </sc-if>
+
+  <!-- ================= AUTH ================= -->
+  <sc-if value="{{ isAuth }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;z-index:4;">
+    <div style="width:460px;max-width:90vw;border:1px solid #1a2130;background:#0b0f16;border-radius:10px;overflow:hidden;box-shadow:0 30px 80px -30px #000;">
+      <div style="display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid #1a2130;background:#0d121b;">
+        <span style="width:9px;height:9px;border-radius:50%;background:#ff5277;"></span>
+        <span style="width:9px;height:9px;border-radius:50%;background:#ffd23f;"></span>
+        <span style="width:9px;height:9px;border-radius:50%;background:#36f9d0;"></span>
+        <span style="margin-left:8px;font-size:11px;color:#6b7787;letter-spacing:.5px;">cancri@auth — secure shell</span>
+      </div>
+      <div style="padding:30px 28px 26px;">
+        <div style="font-size:12px;color:#7b5cff;letter-spacing:3px;font-weight:700;">CANCRI</div>
+        <div style="font-size:11px;color:#39424f;margin-top:2px;letter-spacing:1px;">live-portfolio-terminal · v0.4</div>
+        <div style="margin-top:24px;font-size:13px;color:#6b7787;">&gt; identify yourself to mount your book</div>
+        <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;border:1px solid #1a2130;background:#070a0f;border-radius:7px;padding:11px 13px;">
+            <span style="color:#39424f;font-size:12px;">user@</span>
+            <span style="color:#d7dee8;font-size:13px;">trader</span>
+            <span style="margin-left:auto;color:#39424f;font-size:11px;">login</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;border:1px solid #1a2130;background:#070a0f;border-radius:7px;padding:11px 13px;">
+            <span style="color:#39424f;font-size:12px;">passphrase</span>
+            <span style="color:#6b7787;font-size:13px;letter-spacing:2px;">••••••••••</span>
+            <span style="display:inline-block;width:7px;height:13px;background:#36f9d0;margin-left:1px;animation:caret 1s steps(1) infinite;"></span>
+          </div>
+          <button onClick="{{ goAuth }}" style="margin-top:6px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;letter-spacing:1px;color:#05070b;background:#36f9d0;border:none;border-radius:7px;padding:12px;box-shadow:0 0 22px -4px #36f9d0aa;">[ ↵ connect ]</button>
+          <button onClick="{{ goAuth }}" style="cursor:pointer;font-family:inherit;font-size:12px;color:#7b5cff;background:transparent;border:1px solid #241d44;border-radius:7px;padding:10px;">continue with Google ⟶ firebase</button>
+        </div>
+        <div style="margin-top:18px;font-size:10.5px;color:#39424f;display:flex;align-items:center;gap:6px;">
+          <span style="width:6px;height:6px;border-radius:50%;background:#36f9d0;box-shadow:0 0 8px #36f9d0;animation:pulseLive 1.8s ease-in-out infinite;"></span>
+          secured by firebase auth · session encrypted
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ================= ONBOARDING ================= -->
+  <sc-if value="{{ isOnboard }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;inset:0;font-family:'JetBrains Mono',monospace;z-index:3;display:flex;flex-direction:column;">
+    <div style="{{ topbarStyle }}">
+      <span style="color:#7b5cff;font-weight:700;letter-spacing:2px;">CANCRI</span>
+      <span style="color:#39424f;">/</span>
+      <span style="color:#6b7787;">onboarding · feed the terminal</span>
+      <span style="margin-left:auto;color:#39424f;font-size:11px;">step 1 — describe or drop</span>
+    </div>
+    <div style="flex:1;display:grid;grid-template-columns:1.3fr 1fr;gap:0;min-height:0;">
+      <!-- chat -->
+      <div style="display:flex;flex-direction:column;min-height:0;border-right:1px solid #1a2130;">
+        <div style="flex:1;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:14px;">
+          <div style="font-size:11px;color:#39424f;letter-spacing:1px;">— gemini · portfolio intake —</div>
+          <sc-for list="{{ chat }}" as="m" hint-placeholder-count="3">
+            <div style="{{ m.wrap }}">
+              <div style="{{ m.who }}">{{ m.from }}</div>
+              <div style="{{ m.bubble }}">{{ m.text }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="padding:14px 18px;border-top:1px solid #1a2130;background:#0b0f16;">
+          <div style="display:flex;align-items:center;gap:10px;border:1px solid #222b3b;background:#070a0f;border-radius:8px;padding:11px 13px;">
+            <span style="color:#36f9d0;">&gt;</span>
+            <span style="flex:1;color:#6b7787;font-size:12.5px;">{{ chatPlaceholder }}</span>
+            <span style="display:inline-block;width:7px;height:13px;background:#36f9d0;animation:caret 1s steps(1) infinite;"></span>
+            <button onClick="{{ parsePortfolio }}" style="cursor:pointer;font-family:inherit;font-size:11.5px;font-weight:700;color:#05070b;background:#36f9d0;border:none;border-radius:6px;padding:7px 12px;">parse ↵</button>
+          </div>
+        </div>
+      </div>
+      <!-- dropzone -->
+      <div style="padding:22px;display:flex;flex-direction:column;gap:16px;min-height:0;">
+        <div style="font-size:11px;color:#39424f;letter-spacing:1px;">— or drop a file —</div>
+        <div onClick="{{ parsePortfolio }}" style="cursor:pointer;flex:1;border:1.5px dashed #2a3446;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#080b11;text-align:center;padding:20px;">
+          <div style="font-size:34px;color:#7b5cff;text-shadow:0 0 26px #7b5cff66;">⤓</div>
+          <div style="font-size:13px;color:#d7dee8;">drop <span style="color:#36f9d0;">CSV</span> · <span style="color:#5ec6ff;">XLSX</span> · or paste text</div>
+          <div style="font-size:11px;color:#6b7787;max-width:230px;line-height:1.6;">messy is fine. the machine reconciles tickers, quantities &amp; names — you confirm before anything goes live.</div>
+          <div style="display:flex;gap:6px;margin-top:4px;">
+            <span style="font-size:10px;color:#6b7787;border:1px solid #1a2130;border-radius:5px;padding:3px 7px;">portfolio.csv</span>
+            <span style="font-size:10px;color:#6b7787;border:1px solid #1a2130;border-radius:5px;padding:3px 7px;">ibkr_export.xlsx</span>
+          </div>
+        </div>
+        <div style="font-size:10.5px;color:#39424f;line-height:1.7;">↳ next: gemini normalises your input into a structured inventory. <span style="color:#7b5cff;">the machine proposes — you dispose.</span></div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ================= CONFIRM ================= -->
+  <sc-if value="{{ isConfirm }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;inset:0;font-family:'JetBrains Mono',monospace;z-index:3;display:flex;flex-direction:column;">
+    <div style="{{ topbarStyle }}">
+      <span style="color:#7b5cff;font-weight:700;letter-spacing:2px;">CANCRI</span>
+      <span style="color:#39424f;">/</span>
+      <span style="color:#6b7787;">proposed inventory · review &amp; confirm</span>
+      <span style="margin-left:auto;color:#ffd23f;font-size:11px;">step 2 — the machine proposes, you dispose</span>
+    </div>
+    <div style="flex:1;overflow:auto;padding:22px 26px;">
+      <div style="font-size:12px;color:#6b7787;margin-bottom:14px;">gemini parsed <span style="color:#36f9d0;">{{ confirmCount }} instruments</span> · <span style="color:#ffd23f;">{{ confirmFlagged }} flagged for your eye</span>. edit anything, then lock it in.</div>
+      <div style="border:1px solid #1a2130;border-radius:10px;overflow:hidden;">
+        <div style="display:grid;grid-template-columns:26px 1.4fr 1fr 0.9fr 1.3fr 90px;gap:0;font-size:10.5px;color:#39424f;letter-spacing:1px;background:#0d121b;border-bottom:1px solid #1a2130;padding:10px 14px;">
+          <div></div><div>INSTRUMENT</div><div>SYMBOL</div><div style="text-align:right;">QUANTITY</div><div>CONFIDENCE</div><div style="text-align:right;">SOURCE</div>
+        </div>
+        <sc-for list="{{ confirm }}" as="c" hint-placeholder-count="5">
+          <div style="{{ c.rowStyle }}">
+            <div style="{{ c.dotStyle }}"></div>
+            <div style="color:#d7dee8;font-size:12.5px;">{{ c.name }}</div>
+            <div style="color:#5ec6ff;font-size:12.5px;font-weight:600;">{{ c.symbol }}</div>
+            <div style="text-align:right;"><span style="{{ c.qtyStyle }}">{{ c.qty }}</span></div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="flex:1;height:5px;border-radius:3px;background:#141a26;overflow:hidden;"><div style="{{ c.barStyle }}"></div></div>
+              <span style="{{ c.confTxtStyle }}">{{ c.confLabel }}</span>
+            </div>
+            <div style="text-align:right;color:#6b7787;font-size:11px;">{{ c.source }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:20px;">
+        <button onClick="{{ confirmInventory }}" style="cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;letter-spacing:.5px;color:#05070b;background:#36f9d0;border:none;border-radius:8px;padding:12px 22px;box-shadow:0 0 22px -6px #36f9d0;">✓ lock inventory &amp; go live</button>
+        <button onClick="{{ goOnboard }}" style="cursor:pointer;font-family:inherit;font-size:12px;color:#6b7787;background:transparent;border:1px solid #1a2130;border-radius:8px;padding:11px 18px;">‹ back to intake</button>
+        <span style="margin-left:auto;font-size:11px;color:#39424f;">nothing streams until you confirm.</span>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ================= DASHBOARD ================= -->
+  <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+  <div style="position:absolute;inset:0;font-family:'JetBrains Mono',monospace;z-index:2;display:flex;flex-direction:column;background:#070a0f;">
+
+    <!-- header / aggregate -->
+    <div style="display:flex;align-items:stretch;border-bottom:1px solid #1a2130;background:#0b0f16;">
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 20px;border-right:1px solid #1a2130;">
+        <span style="color:#7b5cff;font-weight:800;letter-spacing:2px;font-size:14px;">CANCRI</span>
+        <span style="font-size:10px;color:#39424f;border:1px solid #1a2130;border-radius:4px;padding:2px 5px;">LPT</span>
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:center;padding:9px 22px;border-right:1px solid #1a2130;">
+        <div style="font-size:10px;color:#6b7787;letter-spacing:1.5px;">PORTFOLIO VALUE</div>
+        <div style="font-size:23px;font-weight:700;color:#eef3fa;letter-spacing:.5px;text-shadow:0 0 18px #5ec6ff22;">$ {{ totalStr }}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:center;padding:9px 22px;border-right:1px solid #1a2130;">
+        <div style="font-size:10px;color:#6b7787;letter-spacing:1.5px;">DAY CHANGE</div>
+        <div style="{{ totalChgStyle }}"><span>{{ totalDirArrow }}</span> {{ totalChgStr }} <span style="opacity:.8;">({{ totalPctStr }})</span></div>
+      </div>
+      <div style="flex:1;"></div>
+      <!-- connection / freshness master -->
+      <div style="{{ connBoxStyle }}">
+        <span style="{{ connDotStyle }}"></span>
+        <div style="display:flex;flex-direction:column;line-height:1.25;">
+          <span style="{{ connLabelStyle }}">{{ connLabel }}</span>
+          <span style="font-size:9.5px;color:#39424f;">{{ connSub }}</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:center;padding:9px 20px;border-left:1px solid #1a2130;">
+        <div style="font-size:10px;color:#6b7787;letter-spacing:1.5px;text-align:right;">{{ marketLabel }}</div>
+        <div style="font-size:16px;font-weight:600;color:#d7dee8;text-align:right;letter-spacing:1px;">{{ clock }}</div>
+      </div>
+    </div>
+
+    <!-- degraded / closed banner -->
+    <sc-if value="{{ showBanner }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ bannerStyle }}"><span style="{{ bannerIcon }}"></span>{{ bannerText }}</div>
+    </sc-if>
+
+    <!-- empty state -->
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+        <div style="font-size:40px;color:#222b3b;">▢</div>
+        <div style="font-size:14px;color:#6b7787;">no instruments loaded. the terminal is hungry.</div>
+        <button onClick="{{ goOnboard }}" style="cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;color:#05070b;background:#36f9d0;border:none;border-radius:8px;padding:11px 20px;">[ + feed the terminal ]</button>
+      </div>
+    </sc-if>
+
+    <!-- error state -->
+    <sc-if value="{{ isError }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
+        <div style="font-size:34px;color:#ff5277;text-shadow:0 0 22px #ff527766;">⚠</div>
+        <div style="font-size:14px;color:#ff8aa0;">feed error — could not reach primary source.</div>
+        <div style="font-size:11px;color:#6b7787;">socket closed · code 1006 · last good tick 00:41 ago</div>
+        <button onClick="{{ retry }}" style="cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;color:#05070b;background:#ffd23f;border:none;border-radius:8px;padding:11px 20px;">↻ retry handshake</button>
+      </div>
+    </sc-if>
+
+    <!-- table -->
+    <sc-if value="{{ showTable }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;overflow:auto;position:relative;">
+      <div style="{{ colHeadStyle }}">
+        <div></div>
+        <div>INSTRUMENT</div>
+        <div style="text-align:right;">QTY</div>
+        <div style="text-align:right;">LAST</div>
+        <div style="text-align:right;">DAY Δ</div>
+        <div style="text-align:right;">DAY %</div>
+        <div style="text-align:center;">5M TREND</div>
+        <div style="text-align:right;">POSITION</div>
+        <div style="text-align:center;">FEED</div>
+      </div>
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="12">
+        <div style="{{ r.rowStyle }}">
+          <!-- logo -->
+          <div style="display:flex;align-items:center;">
+            <sc-if value="{{ r.logoIsLoading }}" hint-placeholder-val="{{ false }}">
+              <div style="width:28px;height:28px;border-radius:7px;background:linear-gradient(90deg,#0d121b,#1a2130,#0d121b);background-size:240px 100%;animation:shimmer 1.1s linear infinite;border:1px solid #1a2130;"></div>
+            </sc-if>
+            <sc-if value="{{ r.logoIsTile }}" hint-placeholder-val="{{ true }}">
+              <div style="{{ r.logoStyle }}">{{ r.logoText }}</div>
+            </sc-if>
+          </div>
+          <!-- name -->
+          <div style="display:flex;flex-direction:column;justify-content:center;line-height:1.25;min-width:0;">
+            <span style="color:#eef3fa;font-size:13px;font-weight:600;letter-spacing:.3px;">{{ r.ticker }}</span>
+            <span style="color:#6b7787;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.name }}</span>
+          </div>
+          <div style="text-align:right;align-self:center;color:#9aa6b4;font-size:12px;">{{ r.qty }}</div>
+          <div style="{{ r.priceStyle }}">{{ r.priceStr }}</div>
+          <div style="{{ r.chgStyle }}"><span style="font-size:10px;">{{ r.dirArrow }}</span> {{ r.chgAbsStr }}</div>
+          <div style="{{ r.pctStyle }}">{{ r.chgPctStr }}</div>
+          <div style="display:flex;align-items:center;justify-content:center;">
+            <svg width="148" height="32" viewBox="0 0 148 32" preserveAspectRatio="none" style="display:block;overflow:visible;">
+              <polyline points="{{ r.sparkArea }}" fill="{{ r.sparkFill }}" stroke="none"></polyline>
+              <polyline points="{{ r.sparkPts }}" fill="none" stroke="{{ r.sparkColor }}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"></polyline>
+              <circle cx="{{ r.sparkHeadX }}" cy="{{ r.sparkHeadY }}" r="2" fill="{{ r.sparkColor }}"></circle>
+            </svg>
+          </div>
+          <div style="text-align:right;align-self:center;color:#d7dee8;font-size:12.5px;font-weight:600;">$ {{ r.valueStr }}</div>
+          <!-- freshness -->
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+            <span style="{{ r.freshDot }}"></span>
+            <span style="{{ r.freshTxt }}">{{ r.freshLabel }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <!-- reconnect overlay -->
+    <sc-if value="{{ isReconnect }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;top:0;background:#05070bcc;backdrop-filter:blur(2px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;z-index:6;">
+        <div style="width:30px;height:30px;border:3px solid #1a2130;border-top-color:#ffd23f;border-radius:50%;animation:spin .8s linear infinite;"></div>
+        <div style="font-size:14px;color:#ffd23f;">reconnecting to primary feed…</div>
+        <div style="font-size:11px;color:#6b7787;letter-spacing:2px;">▰▰▰▰▱▱▱  attempt 2/5</div>
+        <div style="font-size:10.5px;color:#39424f;">holding last quotes · dashboard stays warm</div>
+      </div>
+    </sc-if>
+
+    <!-- footer -->
+    <div style="display:flex;align-items:center;gap:18px;padding:8px 20px;border-top:1px solid #1a2130;background:#0b0f16;font-size:10.5px;color:#6b7787;">
+      <span><span style="color:#36f9d0;">{{ liveCount }}</span> live</span>
+      <span><span style="color:#ffd23f;">{{ delayedCount }}</span> delayed</span>
+      <span style="color:#39424f;">·</span>
+      <span>{{ posCount }} positions</span>
+      <span style="margin-left:auto;color:#39424f;">ticks {{ tickCount }} · latency {{ latency }}ms · {{ feedNote }}</span>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ================= REVIEW BAR ================= -->
+  <sc-if value="{{ showReviewBar }}" hint-placeholder-val="{{ true }}">
+  <div style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:40;display:flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;background:#0b0f16ee;border:1px solid #222b3b;border-radius:10px;padding:6px 8px;box-shadow:0 16px 50px -20px #000;backdrop-filter:blur(6px);max-width:94vw;flex-wrap:wrap;justify-content:center;">
+    <span style="font-size:9.5px;color:#39424f;letter-spacing:1px;padding:0 6px;">// review</span>
+    <sc-for list="{{ navScreens }}" as="n" hint-placeholder-count="5">
+      <button onClick="{{ n.go }}" style="{{ n.style }}">{{ n.label }}</button>
+    </sc-for>
+    <span style="width:1px;height:16px;background:#222b3b;margin:0 3px;"></span>
+    <sc-for list="{{ navStates }}" as="n" hint-placeholder-count="6">
+      <button onClick="{{ n.go }}" style="{{ n.style }}">{{ n.label }}</button>
+    </sc-for>
+    <span style="width:1px;height:16px;background:#222b3b;margin:0 3px;"></span>
+    <button onClick="{{ toggleReduce }}" style="{{ reduceStyle }}">{{ reduceLabel }}</button>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1320,&quot;height&quot;:860}}">
+class Component extends DCLogic {
+  state = { screen:'boot', bootStep:0, reduce:false, dashState:'normal', confirm:[], chat:[], started:false };
+
+  // ---------- lifecycle ----------
+  componentDidMount(){
+    try{ this.setState({ reduce: window.matchMedia('(prefers-reduced-motion: reduce)').matches }); }catch(e){}
+    this.h = this.makeHoldings();
+    this.disp = {}; this.flash = {};
+    this.h.forEach(x=>{ this.disp[x.id]=x.price; });
+    this.tickCount = 0; this.latency = 38;
+    this.setState({ confirm: this.makeConfirm(), chat: this.makeChat() });
+    this.runBoot();
+    this.ticker = setInterval(()=>this.tick(), 1000);
+    this.loop();
+  }
+  componentWillUnmount(){ clearInterval(this.ticker); cancelAnimationFrame(this.raf); this.bootTimers&&this.bootTimers.forEach(clearTimeout); }
+
+  // ---------- seed data ----------
+  makeHoldings(){
+    const seed=[
+      ['AAPL','Apple Inc.',42,212.40,'resolved','NASDAQ','live'],
+      ['NVDA','NVIDIA Corp.',30,128.30,'resolved','NASDAQ','live'],
+      ['MSFT','Microsoft Corp.',18,447.10,'resolved','NASDAQ','live'],
+      ['TSLA','Tesla Inc.',25,243.80,'resolved','NASDAQ','live'],
+      ['BTC','Bitcoin',0.75,61240,'resolved','COINBASE','live'],
+      ['ETH','Ethereum',6.2,3380,'resolved','KRAKEN','live'],
+      ['AMZN','Amazon.com',20,186.40,'resolved','NASDAQ','live'],
+      ['GOOGL','Alphabet Inc.',15,178.20,'loading','NASDAQ','live'],
+      ['AMD','Adv. Micro Devices',40,162.10,'resolved','NASDAQ','delayed'],
+      ['PLTR','Palantir Tech.',120,28.60,'resolved','NYSE','live'],
+      ['COIN','Coinbase Global',14,241.30,'monogram','NASDAQ','delayed'],
+      ['SPY','S&P 500 ETF',30,548.70,'resolved','NYSE','live'],
+    ];
+    const pal=['#7b5cff','#36f9d0','#5ec6ff','#ff5277','#ffd23f','#ff8a4c','#4cd4ff','#b06cff','#36d39b','#ff6ba8','#5b8cff','#46c8a8'];
+    return seed.map((s,i)=>{
+      const [ticker,name,qty,prev,logoState,source,freshness]=s;
+      const price=+(prev*(1+(Math.random()-0.45)*0.02)).toFixed(prev>1000?2:2);
+      const series=this.seedSeries(prev,price,48);
+      return { id:ticker, ticker, name, qty, prevClose:prev, price, logoState, source, freshness, series, accent:pal[i%pal.length] };
+    });
+  }
+  seedSeries(prev,price,n){
+    const out=[]; let v=prev*(1+(Math.random()-0.5)*0.01);
+    for(let i=0;i<n;i++){ v=v*(1+(Math.random()-0.5)*0.004); out.push(v); }
+    out[n-1]=price; return out;
+  }
+  makeConfirm(){
+    const rows=[
+      ['Apple Inc.','AAPL',42,0.99,'NASDAQ'],
+      ['NVIDIA Corp.','NVDA',30,0.97,'NASDAQ'],
+      ['Microsoft Corp.','MSFT',18,0.98,'NASDAQ'],
+      ['Tesla Inc.','TSLA',25,0.95,'NASDAQ'],
+      ['Bitcoin','BTC',0.75,0.93,'COINBASE'],
+      ['Palantir Tech.','PLTR',120,0.62,'NYSE'],
+      ['Amazon.com','AMZN',20,0.41,'NASDAQ'],
+    ];
+    return rows.map(r=>({name:r[0],symbol:r[1],qty:r[2],conf:r[3],source:r[4]}));
+  }
+  makeChat(){
+    return [
+      {role:'user',text:'12 aapl, 0.5 btc, a hundred msft shares, ~30 nvidia, palantir 120, and some amazon'},
+      {role:'bot',text:'parsed 7 instruments. 2 need your eye → AMZN (qty unclear: "some") and PLTR (confirm 120?). resolving symbols & logos…'},
+      {role:'bot',text:'normalised inventory ready. hit parse to review the proposal before anything goes live.'},
+    ];
+  }
+
+  // ---------- boot ----------
+  runBoot(){
+    if(this.state.reduce){ this.setState({bootStep:99}); setTimeout(()=>this.setState({screen:'auth'}),250); return; }
+    this.bootTimers=[];
+    const steps=6;
+    for(let i=1;i<=steps;i++){ this.bootTimers.push(setTimeout(()=>this.setState({bootStep:i}), i*340)); }
+    this.bootTimers.push(setTimeout(()=>this.setState({screen:'auth'}), steps*340+700));
+  }
+
+  // ---------- live sim ----------
+  tick(){
+    if(this.state.screen!=='dash') return;
+    const ds=this.state.dashState;
+    if(ds==='closed'||ds==='error'||ds==='empty'||ds==='reconnect') return;
+    const k=3+Math.floor(Math.random()*3);
+    for(let j=0;j<k;j++){
+      const x=this.h[Math.floor(Math.random()*this.h.length)];
+      const drift=(Math.random()-0.5)*0.012;
+      const np=Math.max(0.01, x.price*(1+drift));
+      x.price=+np.toFixed(2);
+      x.series.push(x.price); if(x.series.length>48) x.series.shift();
+      this.flash[x.id]={dir: drift>=0?'up':'down', t:Date.now()};
+    }
+    this.tickCount++;
+    this.latency=ds==='degraded'?180+Math.floor(Math.random()*120):28+Math.floor(Math.random()*26);
+  }
+  loop(){
+    const ease=this.state.reduce?1:0.16;
+    if(this.h){ this.h.forEach(x=>{ const d=this.disp[x.id]??x.price; this.disp[x.id]=d+(x.price-d)*ease; }); }
+    this.forceUpdate();
+    this.raf=requestAnimationFrame(()=>this.loop());
+  }
+
+  // ---------- format ----------
+  m2(n){ return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  m0(n){ return Math.round(n).toLocaleString('en-US'); }
+  pct(n){ return (n>=0?'+':'')+n.toFixed(2)+'%'; }
+
+  spark(series){
+    const W=148,H=32,p=4; const n=series.length;
+    let mn=Math.min(...series), mx=Math.max(...series); if(mx-mn<1e-9){mx=mn+1;}
+    const X=i=> p+(i*(W-2*p))/(n-1);
+    const Y=v=> H-p-((v-mn)/(mx-mn))*(H-2*p);
+    let pts=''; for(let i=0;i<n;i++){ pts+=X(i).toFixed(1)+','+Y(series[i]).toFixed(1)+' '; }
+    const area=p+','+(H-p)+' '+pts+(W-p)+','+(H-p);
+    return { pts:pts.trim(), area:area.trim(), hx:X(n-1), hy:Y(series[n-1]) };
+  }
+
+  navBtn(active){
+    return 'cursor:pointer;font-family:inherit;font-size:10px;letter-spacing:.5px;border-radius:6px;padding:5px 8px;border:1px solid '+(active?'#36f9d0':'#222b3b')+';background:'+(active?'#0e2a26':'transparent')+';color:'+(active?'#36f9d0':'#6b7787')+';';
+  }
+
+  // ---------- render ----------
+  renderVals(){
+    const S=this.state, screen=S.screen, ds=S.dashState, reduce=S.reduce;
+    const C={bg:'#070a0f',up:'#36f9d0',down:'#ff5277',warn:'#ffd23f',info:'#7b5cff',dim:'#6b7787'};
+    const rootStyle='position:relative;width:100%;height:100%;min-height:100vh;background:#05070b;overflow:hidden;color:#d7dee8;';
+    const topbarStyle='display:flex;align-items:center;gap:10px;padding:13px 20px;border-bottom:1px solid #1a2130;background:#0b0f16;font-size:12px;';
+
+    // boot lines
+    const bl=[
+      ['[ok]','cancri // live-portfolio-terminal','online'],
+      ['[net]','establishing socket → primary feed','handshake'],
+      ['[net]','subscribing instruments · L1 quotes',''],
+      ['[llm]','gemini intake channel ready',''],
+      ['[ok]','freshness monitor armed · live/delayed',''],
+      ['[ok]','terminal ready','✓'],
+    ];
+    const bootLines=bl.slice(0,S.bootStep).map((x,i)=>({
+      tag:x[0], text:x[1], okTxt:x[2], ok: x[2]?'color:#36f9d0;':'display:none;',
+      style:'animation:'+(reduce?'none':'bootline .35s ease both')+';'
+    }));
+    const bootCaret = S.bootStep>=6 ? 'mounting workspace…' : 'booting…';
+
+    // ----- aggregate -----
+    const h=this.h||[];
+    let total=0,totalPrev=0,live=0,delayed=0;
+    const effFresh=(x)=> ds==='degraded' ? 'delayed' : x.freshness;
+    h.forEach(x=>{ total+=x.qty*x.price; totalPrev+=x.qty*x.prevClose; (effFresh(x)==='live'?live++:delayed++); });
+    const totalChg=total-totalPrev; const totalPct=totalPrev?(totalChg/totalPrev*100):0;
+    const tUp=totalChg>=0;
+    const totalChgStyle='font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;color:'+(tUp?C.up:C.down)+';text-shadow:0 0 14px '+(tUp?C.up:C.down)+'33;';
+
+    // ----- rows -----
+    const now=Date.now();
+    const frozen = ds==='closed';
+    const rows=h.map(x=>{
+      const dp=frozen?x.price:(this.disp[x.id]??x.price);
+      const big=x.price>=1000;
+      const chgAbs=x.price-x.prevClose; const chgPct=x.prevClose?(chgAbs/x.prevClose*100):0;
+      const up=chgAbs>=0; const col=up?C.up:C.down;
+      const fl=this.flash[x.id]; let flashBg='transparent';
+      if(fl && !reduce && !frozen){ const a=Math.max(0,1-(now-fl.t)/650); flashBg='rgba('+(fl.dir==='up'?'54,249,208':'255,82,119')+','+(a*0.16).toFixed(3)+')'; }
+      const fresh=effFresh(x);
+      const isLive=fresh==='live';
+      const fColor=isLive?C.up:C.warn;
+      const sp=this.spark(x.series);
+      const sparkCol=up?C.up:C.down;
+      // logo
+      const loading = x.logoState==='loading';
+      const initials = x.ticker.slice(0,x.ticker.length>3?3:x.ticker.length);
+      const tileBase='width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;letter-spacing:.3px;flex-shrink:0;';
+      let logoStyle;
+      if(x.logoState==='monogram'){
+        logoStyle=tileBase+'background:#0d121b;border:1px solid '+x.accent+'66;color:'+x.accent+';';
+      } else {
+        logoStyle=tileBase+'background:linear-gradient(140deg,'+x.accent+'2e,'+x.accent+'14);border:1px solid '+x.accent+'55;color:'+x.accent+';text-shadow:0 0 10px '+x.accent+'66;';
+      }
+      const freshDot='width:7px;height:7px;border-radius:50%;background:'+fColor+';box-shadow:0 0 8px '+fColor+';'+(reduce?'':('animation:'+(isLive?'pulseLive 1.8s ease-in-out infinite':'pulseDelayed 2.6s ease-in-out infinite')+';'));
+      return {
+        id:x.id, ticker:x.ticker, name:x.name, qty:x.qty,
+        logoIsLoading:loading, logoIsTile:!loading, logoStyle, logoText:initials,
+        priceStr:(big?this.m2(dp):this.m2(dp)),
+        priceStyle:'text-align:right;align-self:center;font-size:13px;font-weight:700;color:#eef3fa;padding:6px 8px;border-radius:5px;background:'+flashBg+';transition:'+(reduce?'none':'background .15s linear')+';font-variant-numeric:tabular-nums;',
+        dirArrow:up?'▲':'▼',
+        chgAbsStr:(up?'+':'−')+this.m2(Math.abs(chgAbs)),
+        chgStyle:'text-align:right;align-self:center;font-size:12px;font-weight:600;color:'+col+';display:flex;align-items:center;justify-content:flex-end;gap:4px;',
+        chgPctStr:this.pct(chgPct),
+        pctStyle:'text-align:right;align-self:center;font-size:12px;font-weight:600;color:'+col+';',
+        sparkPts:sp.pts, sparkArea:sp.area, sparkColor:sparkCol, sparkFill:up?'#36f9d014':'#ff527714', sparkHeadX:sp.hx.toFixed(1), sparkHeadY:sp.hy.toFixed(1),
+        valueStr:this.m0(x.qty*x.price),
+        freshDot, freshLabel:isLive?'LIVE':'DELAYED',
+        freshTxt:'font-size:9.5px;font-weight:700;letter-spacing:1px;color:'+fColor+';',
+        rowStyle:'display:grid;grid-template-columns:44px 1.5fr 60px 96px 110px 78px 160px 110px 86px;gap:10px;align-items:center;padding:9px 18px;border-bottom:1px solid #10151e;'+(reduce?'':'transition:background .2s;'),
+      };
+    });
+
+    const colHeadStyle='display:grid;grid-template-columns:44px 1.5fr 60px 96px 110px 78px 160px 110px 86px;gap:10px;padding:8px 18px;font-size:9.5px;letter-spacing:1px;color:#39424f;border-bottom:1px solid #1a2130;background:#0b0f16;position:sticky;top:0;z-index:1;';
+
+    // ----- connection master -----
+    const degraded = ds==='degraded';
+    const connBoxStyle='display:flex;align-items:center;gap:9px;padding:9px 18px;border-left:1px solid #1a2130;';
+    const connColor = degraded?C.warn:C.up;
+    const connDotStyle='width:9px;height:9px;border-radius:50%;background:'+connColor+';box-shadow:0 0 10px '+connColor+';'+(reduce?'':('animation:'+(degraded?'pulseDelayed 2.6s ease-in-out infinite':'pulseLive 1.8s ease-in-out infinite')+';'));
+    const connLabelStyle='font-size:11px;font-weight:700;letter-spacing:1px;color:'+connColor+';';
+    const connLabel = degraded?'DELAYED':'LIVE';
+    const connSub = degraded?'fallback · ~15m lag':'primary · realtime';
+
+    // ----- banners -----
+    let showBanner=false,bannerText='',bannerStyle='',bannerIcon='';
+    const bannerBase='display:flex;align-items:center;gap:10px;padding:9px 20px;font-size:12px;font-weight:600;letter-spacing:.3px;';
+    if(degraded){ showBanner=true; bannerText='PRIMARY SOURCE LOST — showing DELAYED quotes. dashboard stays warm; values may lag ~15 min.'; bannerStyle=bannerBase+'background:#2a2306;color:#ffd23f;border-bottom:1px solid #4a3d0a;'; bannerIcon='width:8px;height:8px;border-radius:50%;background:#ffd23f;box-shadow:0 0 8px #ffd23f;'; }
+    else if(ds==='closed'){ showBanner=true; bannerText='MARKET CLOSED — last close shown. live ticks resume at next open (09:30 ET).'; bannerStyle=bannerBase+'background:#10131c;color:#7b8aa3;border-bottom:1px solid #1a2130;'; bannerIcon='width:8px;height:8px;border-radius:50%;background:#7b5cff;'; }
+
+    const marketClosed=ds==='closed';
+    const marketLabel = marketClosed?'CLOSED · ET':'MARKET · ET';
+    const clock = (frozen?'16:00:00':new Date().toLocaleTimeString('en-GB'));
+
+    const isEmpty=ds==='empty', isError=ds==='error', isReconnect=ds==='reconnect';
+    const showTable = !isEmpty && !isError;
+
+    const feedNote = degraded?'fallback: cboe delayed':(marketClosed?'session: closed':'primary: ws · realtime');
+
+    // ----- review nav -----
+    const screens=[['boot','BOOT'],['auth','AUTH'],['onboard','ONBOARD'],['confirm','CONFIRM'],['dash','DASH']];
+    const navScreens=screens.map(s=>({label:s[1], go:()=>this.goScreen(s[0]), style:this.navBtn(screen===s[0])}));
+    const states=[['normal','LIVE'],['degraded','DEGRADED'],['reconnect','RECONNECT'],['closed','CLOSED'],['empty','EMPTY'],['error','ERROR']];
+    const navStates=states.map(s=>({label:s[1], go:()=>this.goState(s[0]), style:this.navBtn(screen==='dash'&&ds===s[0])}));
+
+    // ----- confirm -----
+    const confirm=(S.confirm||[]).map(c=>{
+      const flagged=c.conf<0.7; const col=c.conf>=0.9?C.up:(c.conf>=0.7?C.info:C.warn);
+      return {
+        name:c.name, symbol:c.symbol, qty:c.qty, source:c.source,
+        rowStyle:'display:grid;grid-template-columns:26px 1.4fr 1fr 0.9fr 1.3fr 90px;gap:0;align-items:center;padding:11px 14px;border-bottom:1px solid #10151e;'+(flagged?'background:#1a1505;':''),
+        dotStyle:'width:7px;height:7px;border-radius:50%;background:'+col+';box-shadow:0 0 7px '+col+';',
+        qtyStyle:'font-size:12.5px;font-weight:600;color:#eef3fa;border:1px solid '+(flagged?'#4a3d0a':'#1a2130')+';background:#070a0f;border-radius:5px;padding:4px 9px;',
+        barStyle:'height:100%;width:'+Math.round(c.conf*100)+'%;background:'+col+';box-shadow:0 0 8px '+col+';',
+        confLabel:flagged?'review':(Math.round(c.conf*100)+'%'),
+        confTxtStyle:'font-size:10px;font-weight:700;letter-spacing:.5px;color:'+col+';min-width:40px;text-align:right;',
+      };
+    });
+    const confirmCount=(S.confirm||[]).length;
+    const confirmFlagged=(S.confirm||[]).filter(c=>c.conf<0.7).length;
+
+    // ----- chat -----
+    const chat=(S.chat||[]).map(m=>{
+      const me=m.role==='user';
+      return {
+        from: me?'you':'gemini', text:m.text,
+        wrap:'display:flex;flex-direction:column;gap:4px;align-items:'+(me?'flex-end':'flex-start')+';',
+        who:'font-size:9.5px;letter-spacing:1px;color:'+(me?'#5ec6ff':'#7b5cff')+';',
+        bubble:'max-width:78%;font-size:12.5px;line-height:1.55;padding:10px 13px;border-radius:9px;'+(me?'background:#0c1a26;border:1px solid #173042;color:#cfe6f5;':'background:#0f0b1e;border:1px solid #241d44;color:#d7dee8;'),
+      };
+    });
+
+    return {
+      rootStyle, topbarStyle,
+      isBoot:screen==='boot', isAuth:screen==='auth', isOnboard:screen==='onboard', isConfirm:screen==='confirm', isDash:screen==='dash',
+      bootLines, bootCaret,
+      goAuth:()=>this.goScreen('onboard'), goOnboard:()=>this.goScreen('onboard'),
+      parsePortfolio:()=>this.goScreen('confirm'), confirmInventory:()=>this.goScreen('dash'),
+      chat, chatPlaceholder:'e.g. 12 AAPL, 0.5 BTC, 100 msft, ~30 nvidia…',
+      confirm, confirmCount, confirmFlagged,
+      // dashboard
+      rows, colHeadStyle,
+      totalStr:this.m0(total), totalChgStyle, totalDirArrow:tUp?'▲':'▼',
+      totalChgStr:(tUp?'+$':'−$')+this.m0(Math.abs(totalChg)), totalPctStr:this.pct(totalPct),
+      connBoxStyle, connDotStyle, connLabelStyle, connLabel, connSub,
+      marketLabel, clock,
+      showBanner, bannerText, bannerStyle, bannerIcon,
+      isEmpty, isError, isReconnect, showTable,
+      retry:()=>this.goState('normal'),
+      liveCount:live, delayedCount:delayed, posCount:h.length, tickCount:this.tickCount||0, latency:this.latency||38, feedNote,
+      // review
+      showReviewBar:true, navScreens, navStates,
+      toggleReduce:()=>this.setState(s=>({reduce:!s.reduce})),
+      reduceLabel: reduce?'MOTION: off':'MOTION: on',
+      reduceStyle:this.navBtn(false)+(reduce?'color:#ffd23f;border-color:#4a3d0a;':''),
+    };
+  }
+
+  goScreen(s){ if(s==='boot'){ this.setState({screen:'boot',bootStep:0}, ()=>this.runBoot()); } else { this.setState({screen:s}); } }
+  goState(st){ this.setState({screen:'dash', dashState:st}); if(st==='reconnect'){ clearTimeout(this._rc); this._rc=setTimeout(()=>{ if(this.state.dashState==='reconnect') this.setState({dashState:'degraded'}); },3200); } }
+}
+</script>
+</body>
+</html>

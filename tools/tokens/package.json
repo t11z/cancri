@@ -1,0 +1,10 @@
+{
+  "name": "@cancri/tokens-gen",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Generates CSS custom properties + typed TS constants from design/cancri.handover.json (ADR-0011).",
+  "scripts": {
+    "generate": "node generate.mjs"
+  }
+}
