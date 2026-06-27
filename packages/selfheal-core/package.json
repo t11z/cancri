@@ -1,0 +1,21 @@
+{
+  "name": "@cancri/selfheal-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure self-heal logic: deterministic candidate search over the L&S break surface, the offline replay gate, the probe decision, and the append-only fixture corpus (ADR-0010). No browser — runs identically in the capture Job and in CI.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@cancri/ls-protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}

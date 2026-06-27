@@ -1,0 +1,18 @@
+{
+  "name": "@cancri/ls-protocol",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The L&S break surface: versioned, data-driven handshake / frame-codec / id-map + deterministic replay (ADR-0009/0010). Pure — no browser, no runtime deps — so the same codec runs in the feed-engine, the self-heal Job, and CI.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}

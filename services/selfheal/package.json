@@ -1,0 +1,18 @@
+{
+  "name": "@cancri/selfheal",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloud Run Job: capture-and-diff (Playwright) + deterministic fix search + GitHub App PR (ADR-0010). No auto-merge — a human merges.",
+  "main": "lib/index.js",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@cancri/ls-protocol": "workspace:*",
+    "@cancri/selfheal-core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}

@@ -6,7 +6,7 @@ import {
   type TickListener,
   type Unsubscribe,
 } from "@cancri/data-contracts";
-import { getActiveProtocol, type ProtocolModule } from "./ls-protocol/index.js";
+import { getActiveProtocol, type ProtocolModule } from "@cancri/ls-protocol";
 
 export interface LsAdapterDeps {
   /** ISIN for a source-internal instrument id (L&S instrument-search resolves this). */

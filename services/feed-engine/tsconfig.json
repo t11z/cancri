@@ -4,7 +4,8 @@
     "noEmit": true,
     "types": ["node"],
     "paths": {
-      "@cancri/data-contracts": ["../../packages/data-contracts/src/index.ts"]
+      "@cancri/data-contracts": ["../../packages/data-contracts/src/index.ts"],
+      "@cancri/ls-protocol": ["../../packages/ls-protocol/src/index.ts"]
     }
   },
   "include": ["src"]
