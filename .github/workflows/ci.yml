@@ -1,8 +1,5 @@
-# CI skeleton — stack-agnostic. The bootstrap fills the lint/test/build steps
-# for the project's actual stack (detected at setup time). Pinned setup actions
-# for the common stacks are included as commented examples; delete what you do
-# not use. Resolve fresh SHAs with the procedure in references/action-pins.md.
-
+# CI for the cancri pnpm/TS monorepo: typecheck + web build + unit tests, plus the
+# security rules / persistence / tick-bus checks on the Firebase Emulator Suite.
 name: CI
 
 on:
@@ -14,28 +11,52 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: ".node-version"
+      - name: Install pnpm
+        run: npm i -g pnpm@11.9.0
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck (all packages)
+        run: pnpm -r --if-present run typecheck
+      - name: Build web
+        run: pnpm --filter @cancri/web build
+      - name: Unit tests (no emulator)
+        run: >
+          pnpm
+          --filter @cancri/ls-protocol
+          --filter @cancri/selfheal-core
+          --filter @cancri/feed-engine
+          --filter @cancri/functions
+          exec vitest run
 
-      # --- Node / TypeScript (example) ---
-      # - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-      #   with:
-      #     node-version: '20'
-      #     cache: 'npm'
-      # - run: npm ci
-      # - run: npm run lint
-      # - run: npm test
-
-      # --- Python (example) ---
-      # - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
-      #   with:
-      #     python-version: '3.x'
-      # - run: pip install -e '.[dev]'   # or: uv sync
-      # - run: ruff check .
-      # - run: pytest
-
-      - name: Placeholder
-        run: echo "Replace with the project's lint/test/build steps."
+  rules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Set up Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: ".node-version"
+      - name: Set up Java (Firestore/Database emulators need JDK 21)
+        uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install pnpm + firebase-tools
+        run: npm i -g pnpm@11.9.0 firebase-tools@15.22.3
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Security rules + persistence + tick-bus (emulator)
+        run: >
+          firebase emulators:exec --only auth,firestore,database --project demo-cancri
+          "pnpm --filter @cancri/rules-tests exec vitest run &&
+           pnpm --filter @cancri/web exec vitest run src/persistence.test.ts src/rtdb-source.test.ts"

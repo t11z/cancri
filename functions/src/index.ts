@@ -4,6 +4,7 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { z } from "zod";
 import type { Position } from "@cancri/data-contracts";
 import { normaliseInventory } from "./normalize.js";
+import { noProviderFetcher, resolveLogo } from "./logo.js";
 
 /**
  * Callable Cloud Functions (2nd gen, ADR-0002/0008), pinned to europe-west3
@@ -55,4 +56,14 @@ export const confirmInventory = onCall({ region: REGION }, async (req) => {
     .set({ positions, updatedAt: FieldValue.serverTimestamp() });
 
   return { ok: true, count: positions.length };
+});
+
+const LogoSchema = z.object({ symbol: z.string(), domain: z.string().optional() });
+
+export const logo = onCall({ region: REGION }, async (req) => {
+  if (!req.auth) throw new HttpsError("unauthenticated", "sign in");
+  const parsed = LogoSchema.safeParse(req.data);
+  if (!parsed.success) throw new HttpsError("invalid-argument", "expected { symbol, domain? }");
+  // Server-side resolution; monogram signal until a logo provider is wired (brief §E).
+  return await resolveLogo(parsed.data, noProviderFetcher);
 });
