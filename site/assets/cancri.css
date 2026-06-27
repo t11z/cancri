@@ -90,7 +90,8 @@ body::before {
   border-bottom: 1px solid var(--c-border);
 }
 
-.brand { display: flex; align-items: baseline; gap: 9px; text-decoration: none; border: 0; }
+.brand { display: flex; align-items: center; gap: 9px; text-decoration: none; border: 0; }
+.brand .logo { width: 26px; height: 26px; border-radius: 6px; display: block; box-shadow: 0 0 16px #7b5cff22; flex: none; }
 .brand .mark {
   font-weight: 800; letter-spacing: 2px; font-size: 15px;
   color: var(--c-info); text-shadow: 0 0 16px var(--c-info-glow);
@@ -137,7 +138,12 @@ main { position: relative; z-index: 1; }
 
 /* ───────────────────────── hero ───────────────────────── */
 
-.hero { padding: clamp(40px, 9vw, 92px) 0 26px; }
+.hero { padding: clamp(34px, 7vw, 72px) 0 26px; }
+.hero-banner {
+  display: block; width: 100%; max-width: 900px; height: auto;
+  border-radius: var(--radius-card); border: 1px solid var(--c-border);
+  margin: 0 0 30px; box-shadow: 0 0 60px #7b5cff14;
+}
 .hero h1 {
   font-size: clamp(28px, 6vw, 52px); line-height: 1.05; margin: 0 0 14px;
   color: var(--c-text-primary); font-weight: 800; letter-spacing: -.5px;
