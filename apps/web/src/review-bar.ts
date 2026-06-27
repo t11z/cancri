@@ -43,6 +43,7 @@ export function ensureReviewBar(app: App): void {
       const go = target.dataset["go"];
       if (!go) return;
       if (go === "reduce") app.toggleReduce();
+      else if (go === "logout") void app.signOut();
       else if (go.startsWith("screen:")) app.goScreen(go.slice(7) as Screen);
       else if (go.startsWith("state:")) app.goState(go.slice(6) as DashState);
     });
@@ -74,5 +75,7 @@ function render(app: App, c: HTMLDivElement): void {
     ${states}
     <span style="width:1px;height:16px;background:#222b3b;margin:0 3px;"></span>
     <button data-go="reduce" style="${reduceStyle}">${app.reduce ? "MOTION: off" : "MOTION: on"}</button>
+    <span style="width:1px;height:16px;background:#222b3b;margin:0 3px;"></span>
+    <button data-go="logout" style="${navBtn(false)}">LOGOUT</button>
   </div>`;
 }

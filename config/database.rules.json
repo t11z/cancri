@@ -1,0 +1,22 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "quotes": {
+      ".read": "auth != null",
+      ".write": false,
+      "$isin": {
+        ".read": "auth != null",
+        ".write": false
+      }
+    },
+
+    "feed": {
+      "status": {
+        ".read": "auth != null",
+        ".write": false
+      }
+    }
+  }
+}

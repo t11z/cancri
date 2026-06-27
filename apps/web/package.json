@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "cancri terminal SPA (Firebase Hosting target). Phase 1: handover-faithful UI driven by a SourceAdapter.",
+  "description": "cancri terminal SPA (Firebase Hosting target). Phase 1: handover-faithful UI; Phase 2: Firebase Auth + Firestore persistence.",
   "scripts": {
     "tokens": "node ../../tools/tokens/generate.mjs",
     "predev": "pnpm run tokens",
@@ -11,14 +11,17 @@
     "prebuild": "pnpm run tokens",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview --host",
-    "typecheck": "pnpm run tokens && tsc --noEmit -p tsconfig.json"
+    "typecheck": "pnpm run tokens && tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
   },
   "dependencies": {
     "@cancri/data-contracts": "workspace:*",
-    "@cancri/sim-source": "workspace:*"
+    "@cancri/sim-source": "workspace:*",
+    "firebase": "^12.15.0"
   },
   "devDependencies": {
     "typescript": "^6.0.3",
-    "vite": "^8.1.0"
+    "vite": "^8.1.0",
+    "vitest": "^4.1.9"
   }
 }

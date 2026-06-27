@@ -8,8 +8,17 @@ import {
   type HotState,
   type Screen,
 } from "./state.js";
-import { buildDemoInventory, buildSimSeeds } from "./fixtures.js";
+import { DEFAULT_PROPOSAL, buildDemoInventory } from "./fixtures.js";
+import {
+  demoToPositions,
+  inventoryFromProposal,
+  positionsToDemo,
+  simSeedsFromInventory,
+} from "./inventory.js";
 import { seedSeries } from "./sparkline.js";
+import { onAuth, signInGoogle, signInOrRegister, signOutUser, type User } from "./auth.js";
+import { db } from "./firebase.js";
+import { loadInventory, saveInventory } from "./persistence.js";
 import { renderBoot } from "./screens/boot.js";
 import { renderAuth } from "./screens/auth.js";
 import { renderOnboard } from "./screens/onboard.js";
@@ -28,8 +37,8 @@ const DEFAULT_FEED: FeedStatus = {
 
 /**
  * The single application controller (ADR-0011). Owns the screen machine, the
- * hot/cold state, and the one rAF render loop. The dashboard is the only screen
- * with a per-frame hot path; the rest are cold renders.
+ * hot/cold state, the one rAF render loop, and — from Phase 2 — the Firebase auth
+ * gate and per-user inventory persistence.
  */
 export class App {
   readonly root: HTMLElement;
@@ -42,6 +51,7 @@ export class App {
   hot: HotState = emptyHot();
   feed: FeedStatus = DEFAULT_FEED;
   source: SimSource | null = null;
+  user: User | null = null;
 
   readonly now: () => number = Date.now;
 
@@ -50,6 +60,8 @@ export class App {
   private bootTimers: number[] = [];
   private offTick: (() => void) | null = null;
   private offStatus: (() => void) | null = null;
+  private bootDone = false;
+  private authReady = false;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -57,8 +69,64 @@ export class App {
   }
 
   start(): void {
+    onAuth((user) => this.handleAuth(user));
     this.runBoot();
     this.loop();
+  }
+
+  // ---- auth gate ----
+
+  private handleAuth(user: User | null): void {
+    const wasSignedIn = this.user !== null;
+    this.user = user;
+    this.authReady = true;
+    if (user === null && wasSignedIn) {
+      // signed out: tear down the live feed and return to the gate
+      this.teardownSource();
+      this.inventory = [];
+      this.hot = emptyHot();
+    }
+    this.tryRoute();
+  }
+
+  /** Route once both the boot animation and the initial auth state have resolved. */
+  private tryRoute(): void {
+    if (!this.bootDone || !this.authReady) return;
+    if (this.user === null) {
+      this.goScreen("auth");
+      return;
+    }
+    void this.enterSignedIn();
+  }
+
+  /** Signed in: load the book; go live if it exists, else onboard. */
+  private async enterSignedIn(): Promise<void> {
+    const uid = this.user?.uid;
+    if (uid === undefined) return;
+    let positions = null;
+    try {
+      positions = await loadInventory(db, uid);
+    } catch {
+      positions = null;
+    }
+    if (positions && positions.length > 0) {
+      this.goLiveWith(positionsToDemo(positions));
+    } else {
+      this.goScreen("onboard");
+    }
+  }
+
+  async signIn(email: string, password: string): Promise<void> {
+    await signInOrRegister(email, password);
+    // onAuth fires → tryRoute()
+  }
+
+  async signInGoogle(): Promise<void> {
+    await signInGoogle();
+  }
+
+  async signOut(): Promise<void> {
+    await signOutUser();
   }
 
   // ---- boot sequence ----
@@ -67,11 +135,12 @@ export class App {
     this.clearBootTimers();
     this.screen = "boot";
     this.bootStep = 0;
+    this.bootDone = false;
     this.render();
     if (this.reduce) {
       this.bootStep = 6;
       renderBoot(this);
-      this.bootTimers.push(window.setTimeout(() => this.goScreen("auth"), 250));
+      this.bootTimers.push(window.setTimeout(() => this.finishBoot(), 250));
       return;
     }
     for (let i = 1; i <= 6; i++) {
@@ -82,7 +151,12 @@ export class App {
         }, i * 340),
       );
     }
-    this.bootTimers.push(window.setTimeout(() => this.goScreen("auth"), 6 * 340 + 700));
+    this.bootTimers.push(window.setTimeout(() => this.finishBoot(), 6 * 340 + 700));
+  }
+
+  private finishBoot(): void {
+    this.bootDone = true;
+    this.tryRoute();
   }
 
   private clearBootTimers(): void {
@@ -103,26 +177,42 @@ export class App {
     this.render();
   }
 
-  /** Lock the (demo) inventory and start the live feed. */
-  goLive(): void {
-    this.inventory = buildDemoInventory();
+  /** Confirm "lock inventory & go live": persist the confirmed book, then stream. */
+  async goLive(): Promise<void> {
+    const inv = inventoryFromProposal(DEFAULT_PROPOSAL);
+    const uid = this.user?.uid;
+    if (uid !== undefined) {
+      try {
+        await saveInventory(db, uid, demoToPositions(inv));
+      } catch {
+        // Persistence failure shouldn't block going live in the demo; surfaced later.
+      }
+    }
+    this.goLiveWith(inv);
+  }
+
+  /** Start (or restart) the live feed for a given inventory. */
+  goLiveWith(inv: readonly DemoPosition[]): void {
+    this.inventory = inv;
     this.hot = emptyHot();
     this.teardownSource();
-    const src = new SimSource(buildSimSeeds());
+    const src = new SimSource(simSeedsFromInventory(inv));
     this.source = src;
     this.offTick = src.onTick((t) => this.onTick(t));
     this.offStatus = src.onStatus((s) => {
       this.feed = s;
     });
-    src.subscribe(this.inventory.map((p) => p.isin));
+    src.subscribe(inv.map((p) => p.isin));
     src.start();
     this.dashState = "normal";
     this.goScreen("dash");
   }
 
-  /** Drive a dashboard secondary state (used by onboarding flow + dev review bar). */
+  /** Drive a dashboard secondary state (onboarding flow + dev review bar). */
   goState(s: DashState): void {
-    if (!this.source) this.goLive();
+    if (!this.source) {
+      this.goLiveWith(this.inventory.length > 0 ? this.inventory : buildDemoInventory());
+    }
     this.dashState = s;
     const scenario: SimScenario = s === "empty" ? "normal" : s;
     this.source?.setScenario(scenario);
@@ -200,7 +290,6 @@ export class App {
     this.source = null;
   }
 
-  /** Stop everything (not used in Phase 1 but keeps the lifecycle honest). */
   destroy(): void {
     cancelAnimationFrame(this.raf);
     this.clearBootTimers();
