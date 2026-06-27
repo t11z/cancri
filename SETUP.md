@@ -96,10 +96,13 @@ gcloud config set project "$PROJECT_ID"
 gcloud billing accounts list
 gcloud billing projects link "$PROJECT_ID" --billing-account=XXXXXX-XXXXXX-XXXXXX
 
-# Enable the APIs the stack needs:
+# Enable the APIs the stack needs. eventarc + pubsub are required by 2nd-gen
+# Cloud Functions (they deploy on Cloud Run via Eventarc); omitting eventarc
+# makes `firebase deploy --only functions` fail with a permissions/enable error.
 gcloud services enable \
   firestore.googleapis.com firebasedatabase.googleapis.com \
   cloudfunctions.googleapis.com run.googleapis.com cloudbuild.googleapis.com \
+  eventarc.googleapis.com pubsub.googleapis.com \
   artifactregistry.googleapis.com secretmanager.googleapis.com \
   cloudscheduler.googleapis.com aiplatform.googleapis.com
 
