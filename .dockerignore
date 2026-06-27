@@ -1,0 +1,10 @@
+**/node_modules
+**/lib
+**/dist
+**/.pnpm-store
+.git
+.github
+**/*.tsbuildinfo
+**/src/generated
+*-debug.log
+.firebase
