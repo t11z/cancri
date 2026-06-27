@@ -82,6 +82,16 @@ jobs:
       # gcloud reads the same ADC as firebase, so the long-running container
       # deploys stay off the firebase-tools auth path (and its v15 #10726 timeout).
       - name: Build & deploy feed-engine (Cloud Run)
+        env:
+          # When GOOGLE_CLOUD_QUOTA_PROJECT is set (job-level env), gcloud attaches
+          # x-goog-user-project to its iamcredentials.generateAccessToken refresh
+          # call. That billing check runs against the WIF federated principal (the
+          # caller of generateAccessToken), not the deployer SA — and the federated
+          # principal lacks serviceUsageConsumer → 403. Providing
+          # CLOUDSDK_AUTH_ACCESS_TOKEN tells gcloud to use this pre-minted deployer-SA
+          # token directly and skip the iamcredentials refresh entirely (same root
+          # cause as the docker-login fix; same solution pattern).
+          CLOUDSDK_AUTH_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
         run: |
           REGION="${{ vars.GCP_REGION || 'europe-west1' }}"
           IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/cancri/feed-engine:${{ github.sha }}"
