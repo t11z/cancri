@@ -18,6 +18,11 @@ export interface ProposedPosition {
   readonly quantity: number;
   /** Optional cost basis if the user supplied one. */
   readonly costBasis?: number;
+  /** Unit the quantity is expressed in, for commodities (e.g. "g", "ozt"); absent
+   *  for plain share/coin counts. See `commodities` for the catalogue. */
+  readonly unit?: string;
+  /** Primary web domain (e.g. "apple.com") used to resolve a brand logo (ADR-0014). */
+  readonly domain?: string;
   /** 0..1 confidence; < 0.7 is flagged for review in the UI. */
   readonly confidence: number;
   /** Where the symbol/venue was resolved, e.g. "NASDAQ". */
@@ -34,6 +39,12 @@ export interface Position {
   readonly name: string;
   readonly quantity: number;
   readonly costBasis?: number;
+  /** Unit the quantity is expressed in, for commodities (e.g. "g", "ozt"); absent
+   *  for plain share/coin counts. The market price is quoted per the commodity's
+   *  canonical unit — see `commodities` for conversion. */
+  readonly unit?: string;
+  /** Primary web domain used to resolve a brand logo (ADR-0014); absent → monogram. */
+  readonly domain?: string;
   readonly source: string;
   /** Decorative identity colour from the handover accent_palette (never up/down). */
   readonly accent: string;

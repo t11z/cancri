@@ -1,11 +1,11 @@
-import { accentForIdentity, monogramInitials } from "@cancri/data-contracts";
+import { accentForIdentity, monogramInitials, type LogoResult } from "@cancri/data-contracts";
 
 /**
- * Logo resolution (brief §E, handover asset_specs). Server-side: resolve a logo
- * for an instrument identity and cache it; on miss, signal the monogram fallback.
- * We NEVER return a fallback image — the client renders the generated monogram
- * tile from the signal. The fetcher is injected so the decision is unit-testable;
- * the real provider fetch + Cloud Storage cache wrap it at runtime.
+ * Logo resolution (brief §E, ADR-0014). Server-side: resolve a brand logo for an
+ * instrument identity; on any miss, signal the monogram fallback. We NEVER return
+ * a fabricated image — the client renders the generated monogram tile from the
+ * signal. The fetcher is injected so the decision is unit-testable; the real
+ * provider (a keyless domain logo service) is `clearbitFetcher` below.
  */
 
 // Handover accent_palette — decorative identity only (never up/down/warn).
@@ -14,9 +14,7 @@ const ACCENT_PALETTE = [
   "#4cd4ff", "#b06cff", "#36d39b", "#ff6ba8", "#5b8cff", "#46c8a8",
 ];
 
-export type LogoResult =
-  | { state: "resolved"; url: string }
-  | { state: "monogram"; initials: string; accent: string };
+export type { LogoResult };
 
 export interface LogoQuery {
   symbol: string;
@@ -38,8 +36,24 @@ export async function resolveLogo(query: LogoQuery, fetcher: LogoFetcher): Promi
 }
 
 /**
- * Default fetcher — no logo provider is chosen yet (a Phase-7 decision), so every
- * instrument resolves to a monogram. Swapping in a provider (Clearbit-style domain
- * logo / Brandfetch) + a Cloud Storage cache is a drop-in replacement here.
+ * Null fetcher — resolves everything to a monogram. Kept for tests and as the
+ * honest default when a provider is unavailable.
  */
 export const noProviderFetcher: LogoFetcher = async () => null;
+
+/**
+ * Real provider (ADR-0014): a keyless, domain-based logo service. We verify the
+ * logo actually exists — fetch it and require an image content-type — before
+ * resolving, so a 404/placeholder never reaches the client (it gets a monogram
+ * instead). No image is stored yet; the client loads the CDN URL directly.
+ */
+export const clearbitFetcher: LogoFetcher = async (domain) => {
+  const url = `https://logo.clearbit.com/${encodeURIComponent(domain)}`;
+  try {
+    const res = await fetch(url, { method: "GET" });
+    const type = res.headers.get("content-type") ?? "";
+    return res.ok && type.startsWith("image/") ? url : null;
+  } catch {
+    return null;
+  }
+};

@@ -1,4 +1,4 @@
-import type { Position, ProposedPosition } from "@cancri/data-contracts";
+import { commodityFor, type Position, type ProposedPosition } from "@cancri/data-contracts";
 import { ACCENT_PALETTE, DEFAULT_HOLDINGS, type SimSeed } from "@cancri/sim-source";
 import type { DemoPosition } from "./state.js";
 import type { ProposalRow } from "./fixtures.js";
@@ -26,9 +26,12 @@ export function inventoryFromProposal(proposal: readonly ProposalRow[]): DemoPos
 export function simSeedsFromInventory(inv: readonly DemoPosition[]): SimSeed[] {
   return inv.map((p) => {
     const ref = REF.get(p.symbol);
+    // Commodities are priced per their canonical unit (ozt for metals); seed from
+    // the catalogue so an added metal gets a believable price, not the 100 default.
+    const commodityClose = commodityFor(p.symbol)?.referenceClose;
     return {
       instrumentId: p.isin,
-      previousClose: ref?.previousClose ?? 100,
+      previousClose: ref?.previousClose ?? commodityClose ?? 100,
       source: p.source,
       freshness: ref?.freshness ?? "live",
     };
@@ -46,18 +49,23 @@ export function proposalToPositions(proposal: readonly ProposedPosition[]): Posi
     source: p.source,
     accent: ACCENT_PALETTE[i % ACCENT_PALETTE.length] ?? "#7b5cff",
     ...(p.costBasis !== undefined ? { costBasis: p.costBasis } : {}),
+    ...(p.unit !== undefined ? { unit: p.unit } : {}),
+    ...(p.domain !== undefined ? { domain: p.domain } : {}),
   }));
 }
 
 /** Strip the view-only logo state for persistence (the book stores Positions). */
 export function demoToPositions(inv: readonly DemoPosition[]): Position[] {
-  return inv.map(({ isin, symbol, name, quantity, source, accent }) => ({
+  return inv.map(({ isin, symbol, name, quantity, source, accent, costBasis, unit, domain }) => ({
     isin,
     symbol,
     name,
     quantity,
     source,
     accent,
+    ...(costBasis !== undefined ? { costBasis } : {}),
+    ...(unit !== undefined ? { unit } : {}),
+    ...(domain !== undefined ? { domain } : {}),
   }));
 }
 

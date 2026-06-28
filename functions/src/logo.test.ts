@@ -1,5 +1,5 @@
-import { describe, expect, test } from "vitest";
-import { noProviderFetcher, resolveLogo } from "./logo.js";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { clearbitFetcher, noProviderFetcher, resolveLogo } from "./logo.js";
 
 describe("resolveLogo (brief §E)", () => {
   test("returns the resolved url when the provider has a logo", async () => {
@@ -26,5 +26,39 @@ describe("resolveLogo (brief §E)", () => {
     const a = await resolveLogo({ symbol: "NVDA" }, noProviderFetcher);
     const b = await resolveLogo({ symbol: "NVDA" }, noProviderFetcher);
     expect(a).toEqual(b);
+  });
+});
+
+describe("clearbitFetcher (ADR-0014) — verify before resolving", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const stubFetch = (init: { ok: boolean; contentType: string }): void => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: init.ok,
+        headers: { get: (h: string) => (h.toLowerCase() === "content-type" ? init.contentType : null) },
+      })),
+    );
+  };
+
+  test("returns the provider URL when the response is an image", async () => {
+    stubFetch({ ok: true, contentType: "image/png" });
+    expect(await clearbitFetcher("apple.com")).toBe("https://logo.clearbit.com/apple.com");
+  });
+
+  test("returns null when the provider 404s (no logo)", async () => {
+    stubFetch({ ok: false, contentType: "text/html" });
+    expect(await clearbitFetcher("nope.invalid")).toBeNull();
+  });
+
+  test("returns null when the body is not an image", async () => {
+    stubFetch({ ok: true, contentType: "text/html" });
+    expect(await clearbitFetcher("nope.invalid")).toBeNull();
+  });
+
+  test("returns null instead of throwing when the network fails", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("network down"); }));
+    expect(await clearbitFetcher("apple.com")).toBeNull();
   });
 });

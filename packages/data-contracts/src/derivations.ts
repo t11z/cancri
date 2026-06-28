@@ -7,6 +7,15 @@ import type { Freshness } from "./tick.js";
 
 export type LogoState = "loading" | "resolved" | "monogram";
 
+/**
+ * Result of server-side logo resolution (ADR-0014). The function returns a
+ * verified provider URL when one exists, else a monogram signal the client paints
+ * itself — an image is never fabricated. This is the function↔client contract.
+ */
+export type LogoResult =
+  | { readonly state: "resolved"; readonly url: string }
+  | { readonly state: "monogram"; readonly initials: string; readonly accent: string };
+
 /** Everything one dashboard row needs, after joining a Position with its latest Tick. */
 export interface AssetRowData {
   readonly identity: string;

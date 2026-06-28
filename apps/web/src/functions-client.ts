@@ -4,7 +4,7 @@ import {
   httpsCallable,
   type Functions,
 } from "firebase/functions";
-import type { Position, ProposedPosition } from "@cancri/data-contracts";
+import type { LogoResult, Position, ProposedPosition } from "@cancri/data-contracts";
 import { app } from "./firebase.js";
 
 /**
@@ -42,4 +42,12 @@ export async function callConfirm(positions: readonly Position[]): Promise<numbe
   );
   const res = await fn({ positions });
   return res.data.count;
+}
+
+/** Resolve a brand logo server-side (ADR-0014). Returns a verified URL or a
+ *  monogram signal; never throws into the caller's hot path — callers swallow. */
+export async function callLogo(symbol: string, domain?: string): Promise<LogoResult> {
+  const fn = httpsCallable<{ symbol: string; domain?: string }, LogoResult>(fns, "logo");
+  const res = await fn(domain !== undefined ? { symbol, domain } : { symbol });
+  return res.data;
 }

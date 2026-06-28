@@ -1,5 +1,13 @@
 import { SimSource, type SimScenario } from "@cancri/sim-source";
-import type { FeedStatus, Position, ProposedPosition, Tick } from "@cancri/data-contracts";
+import {
+  commodityFor,
+  convertQuantity,
+  type FeedStatus,
+  type LogoResult,
+  type Position,
+  type ProposedPosition,
+  type Tick,
+} from "@cancri/data-contracts";
 import {
   emptyHot,
   SPARK_LEN,
@@ -9,12 +17,12 @@ import {
   type Screen,
 } from "./state.js";
 import { buildDemoInventory } from "./fixtures.js";
-import { positionsToDemo, simSeedsFromInventory } from "./inventory.js";
+import { demoToPositions, positionsToDemo, simSeedsFromInventory } from "./inventory.js";
 import { seedSeries } from "./sparkline.js";
 import { onAuth, signInGoogle, signOutUser, type User } from "./auth.js";
 import { db } from "./firebase.js";
 import { isAllowlisted, loadInventory } from "./persistence.js";
-import { callConfirm, callNormalize, type NormalizeInput } from "./functions-client.js";
+import { callConfirm, callLogo, callNormalize, type NormalizeInput } from "./functions-client.js";
 import { renderBoot } from "./screens/boot.js";
 import { renderAuth } from "./screens/auth.js";
 import { renderDenied } from "./screens/denied.js";
@@ -50,6 +58,11 @@ export class App {
   feed: FeedStatus = DEFAULT_FEED;
   source: SimSource | null = null;
   user: User | null = null;
+
+  /** Display currency for the dashboard (USD-priced feed, re-expressed on screen). */
+  currency = "USD";
+  /** Memoised logo resolutions, keyed by symbol, shared across dashboard re-mounts. */
+  readonly logoCache = new Map<string, LogoResult>();
 
   readonly now: () => number = Date.now;
 
@@ -229,6 +242,65 @@ export class App {
   toggleReduce(): void {
     this.reduce = !this.reduce;
     this.render();
+  }
+
+  // ---- live inventory edits (dashboard) ----
+
+  /** Apply an edited book without tearing down the warm feed: keep prices and
+   *  sparklines, re-subscribe to current ids, persist best-effort, re-render. */
+  private applyInventory(inv: readonly DemoPosition[]): void {
+    this.inventory = inv;
+    this.source?.subscribe(inv.map((p) => p.isin));
+    void callConfirm(demoToPositions(inv)).catch(() => {
+      // Persistence failure shouldn't block the live edit; the book stays in memory.
+    });
+    if (this.screen === "dash") this.render();
+  }
+
+  /** Drop a holding from the book and stop streaming it. */
+  removePosition(isin: string): void {
+    this.source?.unsubscribe([isin]);
+    this.applyInventory(this.inventory.filter((p) => p.isin !== isin));
+  }
+
+  /** Set a holding's quantity (in its current unit). Ignores non-finite input. */
+  setQuantity(isin: string, quantity: number): void {
+    if (!Number.isFinite(quantity) || quantity < 0) return;
+    this.applyInventory(this.inventory.map((p) => (p.isin === isin ? { ...p, quantity } : p)));
+  }
+
+  /** Switch a commodity holding's unit, converting the quantity so the physical
+   *  amount (and value) is preserved — 10 ozt becomes 311.03 g, not 10 g. */
+  setUnit(isin: string, unitId: string): void {
+    this.applyInventory(
+      this.inventory.map((p) => {
+        if (p.isin !== isin) return p;
+        const c = commodityFor(p.symbol);
+        if (!c) return p;
+        const quantity = convertQuantity(c, p.quantity, p.unit, unitId);
+        return { ...p, unit: unitId, quantity };
+      }),
+    );
+  }
+
+  /** Change the display currency and repaint (the feed stays USD-priced). */
+  setCurrency(code: string): void {
+    this.currency = code;
+    if (this.screen === "dash") this.render();
+  }
+
+  /** Resolve a brand logo, memoised per symbol. Returns null on any failure so the
+   *  caller simply keeps the monogram. */
+  async resolveLogo(symbol: string, domain: string): Promise<LogoResult | null> {
+    const cached = this.logoCache.get(symbol);
+    if (cached) return cached;
+    try {
+      const res = await callLogo(symbol, domain);
+      this.logoCache.set(symbol, res);
+      return res;
+    } catch {
+      return null;
+    }
   }
 
   // ---- tick hot-path ----
