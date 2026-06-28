@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import type { Position } from "@cancri/data-contracts";
-import { mergeInventory } from "./inventory.js";
+import { mergeInventory, simSeedsFromInventory } from "./inventory.js";
+import type { DemoPosition } from "./state.js";
 
 const pos = (over: Partial<Position> & Pick<Position, "symbol" | "quantity">): Position => ({
   isin: over.isin ?? over.symbol,
@@ -10,6 +11,13 @@ const pos = (over: Partial<Position> & Pick<Position, "symbol" | "quantity">): P
   source: over.source ?? "gemini",
   accent: over.accent ?? "#7b5cff",
   ...(over.costBasis !== undefined ? { costBasis: over.costBasis } : {}),
+});
+
+const demo = (over: Partial<DemoPosition> & Pick<DemoPosition, "symbol" | "quantity">): DemoPosition => ({
+  ...pos(over),
+  logoState: over.logoState ?? "monogram",
+  ...(over.referencePrice !== undefined ? { referencePrice: over.referencePrice } : {}),
+  ...(over.currency !== undefined ? { currency: over.currency } : {}),
 });
 
 const book: Position[] = [
@@ -55,5 +63,26 @@ describe("mergeInventory — adding holdings folds into the existing book", () =
   test("an empty book (first-run onboarding) is just the additions", () => {
     const additions = [pos({ symbol: "AAPL", quantity: 1 }), pos({ symbol: "MSFT", quantity: 2 })];
     expect(mergeInventory([], additions, () => "replace")).toEqual(additions);
+  });
+});
+
+describe("simSeedsFromInventory — anchor the price layer to the real market", () => {
+  test("seeds an onboarded instrument from its captured reference price", () => {
+    const [seed] = simSeedsFromInventory([
+      demo({ isin: "DE0007164600", symbol: "SAP", quantity: 10, referencePrice: 240.5, currency: "EUR" }),
+    ]);
+    // Without the reference price this fell back to 100 — the bug that made every
+    // non-demo holding's value grossly wrong.
+    expect(seed?.previousClose).toBe(240.5);
+  });
+
+  test("a captured price wins over the demo catalogue seed", () => {
+    const [seed] = simSeedsFromInventory([demo({ symbol: "AAPL", quantity: 1, referencePrice: 250 })]);
+    expect(seed?.previousClose).toBe(250);
+  });
+
+  test("falls back to the neutral baseline only when nothing better exists", () => {
+    const [seed] = simSeedsFromInventory([demo({ symbol: "ZZZ", quantity: 1 })]);
+    expect(seed?.previousClose).toBe(100);
   });
 });

@@ -31,7 +31,10 @@ export function simSeedsFromInventory(inv: readonly DemoPosition[]): SimSeed[] {
     const commodityClose = commodityFor(p.symbol)?.referenceClose;
     return {
       instrumentId: p.isin,
-      previousClose: ref?.previousClose ?? commodityClose ?? 100,
+      // Anchor to the real market price captured at onboarding; only when that is
+      // absent fall back to the demo catalogue, a commodity baseline, then 100.
+      // Without this, every instrument outside the demo set sat near 100.
+      previousClose: p.referencePrice ?? ref?.previousClose ?? commodityClose ?? 100,
       source: p.source,
       freshness: ref?.freshness ?? "live",
     };
@@ -49,6 +52,8 @@ export function proposalToPositions(proposal: readonly ProposedPosition[]): Posi
     source: p.source,
     accent: ACCENT_PALETTE[i % ACCENT_PALETTE.length] ?? "#7b5cff",
     ...(p.costBasis !== undefined ? { costBasis: p.costBasis } : {}),
+    ...(p.referencePrice !== undefined ? { referencePrice: p.referencePrice } : {}),
+    ...(p.currency !== undefined ? { currency: p.currency } : {}),
     ...(p.unit !== undefined ? { unit: p.unit } : {}),
     ...(p.domain !== undefined ? { domain: p.domain } : {}),
   }));
@@ -56,17 +61,21 @@ export function proposalToPositions(proposal: readonly ProposedPosition[]): Posi
 
 /** Strip the view-only logo state for persistence (the book stores Positions). */
 export function demoToPositions(inv: readonly DemoPosition[]): Position[] {
-  return inv.map(({ isin, symbol, name, quantity, source, accent, costBasis, unit, domain }) => ({
-    isin,
-    symbol,
-    name,
-    quantity,
-    source,
-    accent,
-    ...(costBasis !== undefined ? { costBasis } : {}),
-    ...(unit !== undefined ? { unit } : {}),
-    ...(domain !== undefined ? { domain } : {}),
-  }));
+  return inv.map(
+    ({ isin, symbol, name, quantity, source, accent, costBasis, referencePrice, currency, unit, domain }) => ({
+      isin,
+      symbol,
+      name,
+      quantity,
+      source,
+      accent,
+      ...(costBasis !== undefined ? { costBasis } : {}),
+      ...(referencePrice !== undefined ? { referencePrice } : {}),
+      ...(currency !== undefined ? { currency } : {}),
+      ...(unit !== undefined ? { unit } : {}),
+      ...(domain !== undefined ? { domain } : {}),
+    }),
+  );
 }
 
 /** Per-conflict disposition when an added instrument is already in the book. */

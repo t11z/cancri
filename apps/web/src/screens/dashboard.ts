@@ -9,7 +9,7 @@ import {
   type LogoResult,
 } from "@cancri/data-contracts";
 import { pct, clockString } from "../format.js";
-import { CURRENCIES, fmtMoney0, fmtPrice } from "../currency.js";
+import { CURRENCIES, fmtMoney0, fmtPrice, toUsd } from "../currency.js";
 import { spark } from "../sparkline.js";
 import { openAddModal } from "./add-modal.js";
 
@@ -23,6 +23,9 @@ interface RowRef {
   readonly id: string;
   /** Quantity in the commodity's canonical (priced) unit, else the raw count. */
   readonly valueQty: number;
+  /** The instrument's native quote currency (e.g. "EUR"); USD when unknown. The
+   *  feed price is in this currency and is normalised to USD before display. */
+  readonly currency: string;
   readonly priceEl: HTMLElement;
   readonly chgEl: HTMLElement;
   readonly pctEl: HTMLElement;
@@ -294,6 +297,7 @@ export class Dashboard {
         const c = commodityFor(p.symbol);
         this.rows.push({
           id: p.isin,
+          currency: p.currency ?? "USD",
           valueQty: c ? canonicalQuantity(c, p.quantity, p.unit) : p.quantity,
           priceEl: rowEl.querySelector<HTMLElement>(".px")!,
           chgEl: rowEl.querySelector<HTMLElement>(".chg")!,
@@ -371,9 +375,15 @@ export class Dashboard {
     let totalPrev = 0;
 
     for (const r of this.rows) {
-      const price = hot.price.get(r.id) ?? 0;
-      const prevClose = hot.prev.get(r.id) ?? price;
-      const dp = frozen ? price : (hot.disp.get(r.id) ?? price);
+      // Feed prices are in the instrument's native currency; read them, then
+      // normalise to the USD base so the fmt* helpers can re-express the whole
+      // book in the chosen display currency without an FX error per holding.
+      const nativePrice = hot.price.get(r.id) ?? 0;
+      const nativePrev = hot.prev.get(r.id) ?? nativePrice;
+      const nativeDp = frozen ? nativePrice : (hot.disp.get(r.id) ?? nativePrice);
+      const price = toUsd(nativePrice, r.currency);
+      const prevClose = toUsd(nativePrev, r.currency);
+      const dp = toUsd(nativeDp, r.currency);
       total += r.valueQty * price;
       totalPrev += r.valueQty * prevClose;
 

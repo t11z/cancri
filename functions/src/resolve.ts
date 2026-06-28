@@ -166,3 +166,94 @@ export function getIsinResolver(): IsinResolver {
   if (inEmulator || disabled) return new MockIsinResolver();
   return new YahooResolver();
 }
+
+// ---------------------------------------------------------------------------
+// Reference price — anchor the price layer to the real market at onboarding.
+//
+// The price layer (sim today, live L&S/Yahoo in Phase 6) needs a believable
+// starting price per instrument; without one, an onboarded holding outside the
+// demo set defaults to a neutral baseline, so its displayed value is grossly
+// wrong. We capture a last price here, from the same Yahoo source that resolves
+// the ISIN, keyed on the resolved symbol. The fetcher is injected so it stays
+// unit-testable and offline-safe (it never throws — a miss is `null`).
+// ---------------------------------------------------------------------------
+
+/** A last-known market price for one instrument, in its native currency. */
+export interface ReferenceQuote {
+  /** Last/regular-market price, quoted in `currency`. */
+  readonly price: number;
+  /** ISO currency the price is quoted in (e.g. "EUR", "USD"). */
+  readonly currency: string;
+}
+
+/** Injected network seam: given a (resolved) symbol, return its last price, or
+ *  null when it cannot be confirmed (unknown symbol, or the source was down). */
+export type PriceFetcher = (symbol: string) => Promise<ReferenceQuote | null>;
+
+/** The minimal shape we read out of Yahoo's chart `meta`. */
+interface YahooChartMeta {
+  readonly regularMarketPrice?: number;
+  readonly currency?: string;
+}
+
+/**
+ * Real provider: Yahoo's keyless chart endpoint, queried by symbol. Returns the
+ * last price and the currency Yahoo actually quotes it in (so we stay honest
+ * about EUR vs USD). Any network/parse failure degrades to null — the caller
+ * then leaves the price unset rather than presenting a wrong number.
+ */
+export const yahooPriceFetcher: PriceFetcher = async (symbol) => {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(
+    symbol,
+  )}?range=1d&interval=1d`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { "User-Agent": "Mozilla/5.0 (cancri price resolver)" },
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { chart?: { result?: { meta?: YahooChartMeta }[] } };
+    const meta = body.chart?.result?.[0]?.meta;
+    const price = meta?.regularMarketPrice;
+    if (typeof price !== "number" || !Number.isFinite(price)) return null;
+    return { price, currency: meta?.currency ?? "USD" };
+  } catch {
+    return null;
+  }
+};
+
+// Offline reference prices for the symbols the MockIsinResolver / MockGemini
+// emit, so the whole pipeline yields believable values without a network call.
+// Keyed on the resolved symbol.
+const KNOWN_PRICES: Record<string, ReferenceQuote> = {
+  AAPL: { price: 212.4, currency: "USD" },
+  MSFT: { price: 447.1, currency: "USD" },
+  NVDA: { price: 128.3, currency: "USD" },
+  AMZN: { price: 186.4, currency: "USD" },
+  PLTR: { price: 28.6, currency: "USD" },
+  GOOGL: { price: 178.2, currency: "USD" },
+  AIR: { price: 161.8, currency: "EUR" },
+  MCD: { price: 292.5, currency: "USD" },
+  VWCE: { price: 137.4, currency: "EUR" },
+};
+
+/** Deterministic stand-in for the price fetcher — offline, for tests and the
+ *  Functions emulator. Unknown symbols resolve to null (price stays unset). */
+export class MockPriceFetcher {
+  async fetch(symbol: string): Promise<ReferenceQuote | null> {
+    return KNOWN_PRICES[symbol.toUpperCase()] ?? null;
+  }
+}
+
+/** Pick the price fetcher for the current runtime — mirrors `getIsinResolver()`.
+ *  The real Yahoo chart runs when deployed; the offline mock stands in inside the
+ *  Functions emulator or when the resolver is explicitly disabled. */
+export function getPriceFetcher(): PriceFetcher {
+  const inEmulator = process.env["FUNCTIONS_EMULATOR"] === "true";
+  const disabled = process.env["CANCRI_USE_YAHOO_RESOLVER"] === "false";
+  if (inEmulator || disabled) {
+    const mock = new MockPriceFetcher();
+    return (symbol) => mock.fetch(symbol);
+  }
+  return yahooPriceFetcher;
+}

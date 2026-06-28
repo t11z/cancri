@@ -36,6 +36,14 @@ export function convert(usd: number, code: string): number {
   return usd * currencyOf(code).perUsd;
 }
 
+/** Convert an amount quoted in `code` back into the USD base (inverse of
+ *  `convert`). Instruments carry their native quote currency, so the dashboard
+ *  normalises every price to USD before re-expressing the book in the chosen
+ *  display currency — otherwise a EUR-quoted holding would be off by the FX rate. */
+export function toUsd(amount: number, code: string): number {
+  return amount / currencyOf(code).perUsd;
+}
+
 /** A USD amount as a currency-prefixed, whole-number string (header/position cells). */
 export function fmtMoney0(usd: number, code: string): string {
   const c = currencyOf(code);

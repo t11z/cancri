@@ -18,6 +18,13 @@ export interface ProposedPosition {
   readonly quantity: number;
   /** Optional cost basis if the user supplied one. */
   readonly costBasis?: number;
+  /** Last known market price at onboarding, in `currency`, fetched from the same
+   *  Yahoo source that resolves the ISIN. Used to anchor the price layer to the
+   *  real market instead of a neutral default; absent when the lookup couldn't
+   *  confirm a price (the price layer then falls back). */
+  readonly referencePrice?: number;
+  /** ISO currency the price is quoted in (e.g. "EUR", "USD"); absent → USD. */
+  readonly currency?: string;
   /** Unit the quantity is expressed in, for commodities (e.g. "g", "ozt"); absent
    *  for plain share/coin counts. See `commodities` for the catalogue. */
   readonly unit?: string;
@@ -39,6 +46,11 @@ export interface Position {
   readonly name: string;
   readonly quantity: number;
   readonly costBasis?: number;
+  /** Last known market price at onboarding, in `currency` — anchors the price
+   *  layer to the real market. Persists with the book so it survives reload. */
+  readonly referencePrice?: number;
+  /** ISO currency the price is quoted in (e.g. "EUR", "USD"); absent → USD. */
+  readonly currency?: string;
   /** Unit the quantity is expressed in, for commodities (e.g. "g", "ozt"); absent
    *  for plain share/coin counts. The market price is quoted per the commodity's
    *  canonical unit — see `commodities` for conversion. */
