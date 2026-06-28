@@ -27,8 +27,12 @@ permissions:
 
 jobs:
   # ---- AUTO triage on new issues and PRs ----
+  # Dependabot opens its own PRs; triaging them is noise (and Dependabot PRs
+  # carry a restricted token), so skip the bot's actor entirely.
   triage:
-    if: github.event_name == 'issues' || github.event_name == 'pull_request'
+    if: >
+      (github.event_name == 'issues' || github.event_name == 'pull_request') &&
+      github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Generate app token
