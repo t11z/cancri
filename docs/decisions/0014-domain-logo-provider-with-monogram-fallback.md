@@ -9,7 +9,7 @@ created: 2026-06-28
 updated: 2026-06-28
 author: "Thomas Sprock"
 project: cancri
-technologies: [firebase-functions, typescript, clearbit, vite]
+technologies: [firebase-functions, typescript, duckduckgo, vite]
 related: [0001-pin-region-europe-west1.md, 0007-isin-resolution-llm-proposes-resolver-disposes.md, 0011-frontend-vanilla-ts-vite-single-raf.md]
 ---
 
@@ -259,14 +259,26 @@ decision rather than making it.
 
 ## Decision
 
-Adopt **Option 1: a keyless domain-based logo CDN (Clearbit-style), resolved and
-verified server-side, with a client-rendered monogram fallback.** A logo URL is
-returned only after the server has confirmed the response is an image; otherwise the
-row shows an honest monogram. No new secret is introduced, and both boundary crossings
-are explicit and individually removable.
+Adopt **Option 1: a keyless, domain-addressed mark service, resolved and verified
+server-side, with a client-rendered monogram fallback.** A URL is returned only after
+the server has confirmed the response is an image; otherwise the row shows an honest
+monogram. No new secret is introduced, and both boundary crossings are explicit and
+individually removable.
+
+The concrete provider is **DuckDuckGo's keyless icon service**
+(`https://icons.duckduckgo.com/ip3/{domain}.ico`). The originally chosen endpoint,
+Clearbit's keyless logo CDN, was sunset in late 2024 and now returns errors, leaving
+no keyless *brand-logo* CDN available. This means accepting the favicon-quality
+trade-off that disqualified Option 3 (Google favicons): with keyed providers ruled out
+for v1 by the "no new secret" driver, a keyless icon service is the only option that
+meets the primary drivers, and at the terminal's small row-tile size a domain icon
+reads acceptably — while the honest monogram remains the always-available fallback for
+any miss. DuckDuckGo's `ip3` endpoint returns the site's higher-resolution icon
+(apple-touch-icon where present), which is closer to a brand mark than the low-res
+`s2/favicons` artefact Option 3 weighed.
 
 The implementation will use:
-- **`https://logo.clearbit.com/{domain}`** as the keyless logo source, with no API key.
+- **`https://icons.duckduckgo.com/ip3/{domain}.ico`** as the keyless mark source, with no API key.
 - **The existing `logo` `onCall` Function (`europe-west1`, ADR-0001)** as the
   server-side resolver: it derives a candidate domain, fetches the URL, and returns
   `{ state: "resolved", url }` only on HTTP OK with an image `content-type`; otherwise
@@ -363,10 +375,11 @@ Mitigations:
 - cancri implementation brief — `design/IMPLEMENTATION_BRIEF.md`, §E (asset_specs /
   logo resolution and the monogram fallback), and §3 (no secrets in client; data stays
   in the Firebase project).
-- [Clearbit Logo API](https://clearbit.com/logo) - the keyless, domain-addressed logo
-  source chosen for v1.
-- `functions/src/logo.ts` - the existing `logo` callable and the `noProviderFetcher`
-  this ADR replaces with a real, verifying fetcher.
+- [DuckDuckGo icon service](https://icons.duckduckgo.com/ip3/duckduckgo.com.ico) - the
+  keyless, domain-addressed mark source chosen for v1 (Clearbit's keyless logo CDN, the
+  original choice, was sunset in late 2024).
+- `functions/src/logo.ts` - the `logo` callable and the `duckduckgoFetcher` that
+  resolves a mark only after verifying it is an image.
 
 ## More Information
 

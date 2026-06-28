@@ -5,7 +5,7 @@ import { accentForIdentity, monogramInitials, type LogoResult } from "@cancri/da
  * instrument identity; on any miss, signal the monogram fallback. We NEVER return
  * a fabricated image — the client renders the generated monogram tile from the
  * signal. The fetcher is injected so the decision is unit-testable; the real
- * provider (a keyless domain logo service) is `clearbitFetcher` below.
+ * provider (a keyless domain icon service) is `duckduckgoFetcher` below.
  */
 
 // Handover accent_palette — decorative identity only (never up/down/warn).
@@ -42,13 +42,14 @@ export async function resolveLogo(query: LogoQuery, fetcher: LogoFetcher): Promi
 export const noProviderFetcher: LogoFetcher = async () => null;
 
 /**
- * Real provider (ADR-0014): a keyless, domain-based logo service. We verify the
- * logo actually exists — fetch it and require an image content-type — before
- * resolving, so a 404/placeholder never reaches the client (it gets a monogram
- * instead). No image is stored yet; the client loads the CDN URL directly.
+ * Real provider (ADR-0014): DuckDuckGo's keyless, domain-addressed icon service.
+ * (Clearbit's keyless logo CDN, the original choice, was sunset in late 2024.) We
+ * verify the icon actually exists — fetch it and require an image content-type —
+ * before resolving, so a 404/placeholder never reaches the client (it gets a
+ * monogram instead). No image is stored yet; the client loads the CDN URL directly.
  */
-export const clearbitFetcher: LogoFetcher = async (domain) => {
-  const url = `https://logo.clearbit.com/${encodeURIComponent(domain)}`;
+export const duckduckgoFetcher: LogoFetcher = async (domain) => {
+  const url = `https://icons.duckduckgo.com/ip3/${encodeURIComponent(domain)}.ico`;
   try {
     const res = await fetch(url, { method: "GET" });
     const type = res.headers.get("content-type") ?? "";

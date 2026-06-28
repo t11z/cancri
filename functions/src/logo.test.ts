@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { clearbitFetcher, noProviderFetcher, resolveLogo } from "./logo.js";
+import { duckduckgoFetcher, noProviderFetcher, resolveLogo } from "./logo.js";
 
 describe("resolveLogo (brief §E)", () => {
   test("returns the resolved url when the provider has a logo", async () => {
@@ -29,7 +29,7 @@ describe("resolveLogo (brief §E)", () => {
   });
 });
 
-describe("clearbitFetcher (ADR-0014) — verify before resolving", () => {
+describe("duckduckgoFetcher (ADR-0014) — verify before resolving", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   const stubFetch = (init: { ok: boolean; contentType: string }): void => {
@@ -43,22 +43,22 @@ describe("clearbitFetcher (ADR-0014) — verify before resolving", () => {
   };
 
   test("returns the provider URL when the response is an image", async () => {
-    stubFetch({ ok: true, contentType: "image/png" });
-    expect(await clearbitFetcher("apple.com")).toBe("https://logo.clearbit.com/apple.com");
+    stubFetch({ ok: true, contentType: "image/x-icon" });
+    expect(await duckduckgoFetcher("apple.com")).toBe("https://icons.duckduckgo.com/ip3/apple.com.ico");
   });
 
-  test("returns null when the provider 404s (no logo)", async () => {
+  test("returns null when the provider 404s (no icon)", async () => {
     stubFetch({ ok: false, contentType: "text/html" });
-    expect(await clearbitFetcher("nope.invalid")).toBeNull();
+    expect(await duckduckgoFetcher("nope.invalid")).toBeNull();
   });
 
   test("returns null when the body is not an image", async () => {
     stubFetch({ ok: true, contentType: "text/html" });
-    expect(await clearbitFetcher("nope.invalid")).toBeNull();
+    expect(await duckduckgoFetcher("nope.invalid")).toBeNull();
   });
 
   test("returns null instead of throwing when the network fails", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("network down"); }));
-    expect(await clearbitFetcher("apple.com")).toBeNull();
+    expect(await duckduckgoFetcher("apple.com")).toBeNull();
   });
 });
