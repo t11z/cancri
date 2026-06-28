@@ -45,3 +45,4 @@ Frontmatter (title, description, type, category, tags, status, created, updated,
 | [0012](0012-access-gating-firestore-rules-allowlist.md) | Access gating via a Firestore-rules invite allowlist | accepted |
 | [0013](0013-always-available-holdings-intake-merge.md) | Holdings intake is always-available and merges into the book, user-resolved | accepted |
 | [0014](0014-domain-logo-provider-with-monogram-fallback.md) | Domain logo provider with monogram fallback | proposed |
+| [0015](0015-yahoo-search-normalisation-time-isin-resolver.md) | Yahoo instrument-search as the normalisation-time ISIN resolver | proposed |
