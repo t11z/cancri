@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   MockIsinResolver,
+  MockPriceFetcher,
   YahooResolver,
   pickInstrument,
   type SearchFetcher,
@@ -62,5 +63,17 @@ describe("MockIsinResolver — offline known-instrument table", () => {
 
   test("an unknown ISIN resolves to null", async () => {
     expect(await new MockIsinResolver().resolve("XX0000000000")).toBeNull();
+  });
+});
+
+describe("MockPriceFetcher — offline last-price table for the price anchor", () => {
+  test("returns a known instrument's price and native currency", async () => {
+    const f = new MockPriceFetcher();
+    expect(await f.fetch("AAPL")).toEqual({ price: 212.4, currency: "USD" });
+    expect(await f.fetch("vwce")).toEqual({ price: 137.4, currency: "EUR" }); // case-insensitive
+  });
+
+  test("an unknown symbol resolves to null (price stays unset, never wrong)", async () => {
+    expect(await new MockPriceFetcher().fetch("ZZZZ")).toBeNull();
   });
 });

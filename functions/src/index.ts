@@ -40,6 +40,8 @@ const PositionSchema = z.object({
   source: z.string(),
   accent: z.string(),
   costBasis: z.number().optional(),
+  referencePrice: z.number().optional(),
+  currency: z.string().optional(),
   unit: z.string().optional(),
   domain: z.string().optional(),
 });

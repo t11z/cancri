@@ -2,7 +2,7 @@ import type { ProposedPosition } from "@cancri/data-contracts";
 import { isValidIsin } from "./isin.js";
 import { extractText, type RawInput } from "./parse.js";
 import { getGeminiClient, type GeminiClient, type RawProposal } from "./gemini.js";
-import { getIsinResolver, type IsinResolver } from "./resolve.js";
+import { getIsinResolver, getPriceFetcher, type IsinResolver, type PriceFetcher } from "./resolve.js";
 
 /**
  * The normalisation pipeline (brief §B, ADR-0007): extract text from any of the
@@ -17,15 +17,20 @@ export async function normaliseInventory(
   input: RawInput,
   client: GeminiClient = getGeminiClient(),
   resolver: IsinResolver = getIsinResolver(),
+  priceFetcher: PriceFetcher = getPriceFetcher(),
 ): Promise<ProposedPosition[]> {
   const text = await extractText(input);
   const raw = await client.normalise(text);
-  return Promise.all(raw.map((r) => gate(r, resolver)));
+  return Promise.all(raw.map((r) => gate(r, resolver, priceFetcher)));
 }
 
 const FLAG_THRESHOLD = 0.69; // below 0.7 the confirm screen flags the row
 
-async function gate(r: RawProposal, resolver: IsinResolver): Promise<ProposedPosition> {
+async function gate(
+  r: RawProposal,
+  resolver: IsinResolver,
+  priceFetcher: PriceFetcher,
+): Promise<ProposedPosition> {
   let confidence = Math.max(0, Math.min(1, r.confidence));
   let isin = r.isin;
   let name = r.name;
@@ -60,6 +65,11 @@ async function gate(r: RawProposal, resolver: IsinResolver): Promise<ProposedPos
     confidence = Math.min(confidence, FLAG_THRESHOLD);
   }
 
+  // Anchor the price layer to the real market: look up a last price for the
+  // resolved symbol. Best-effort — a miss simply leaves the fields unset and the
+  // price layer falls back. Never lets a price failure break normalisation.
+  const quote = await priceFetcher(symbol).catch(() => null);
+
   return {
     name,
     symbol,
@@ -68,6 +78,7 @@ async function gate(r: RawProposal, resolver: IsinResolver): Promise<ProposedPos
     source: "gemini",
     ...(isin !== undefined ? { isin } : {}),
     ...(r.costBasis !== undefined ? { costBasis: r.costBasis } : {}),
+    ...(quote !== null ? { referencePrice: quote.price, currency: quote.currency } : {}),
     ...(note !== undefined ? { uncertaintyNote: note } : {}),
   };
 }
