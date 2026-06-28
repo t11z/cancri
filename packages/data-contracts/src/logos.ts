@@ -25,6 +25,15 @@ const KNOWN_DOMAINS: Record<string, string> = {
   UBER: "uber.com",
   SHOP: "shopify.com",
   PYPL: "paypal.com",
+  AIR: "airbus.com",
+  MCD: "mcdonalds.com",
+  PANW: "paloaltonetworks.com",
+  V: "visa.com",
+  MA: "mastercard.com",
+  JPM: "jpmorganchase.com",
+  DIS: "disney.com",
+  KO: "coca-cola.com",
+  PEP: "pepsico.com",
 };
 
 /** Primary domain for a symbol (case-insensitive), or undefined → monogram. */
