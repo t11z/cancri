@@ -1,131 +1,16 @@
 import type { App } from "../app.js";
-import type { ProposedPosition } from "@cancri/data-contracts";
 import { DEFAULT_CHAT } from "../fixtures.js";
-import type { NormalizeInput } from "../functions-client.js";
+import { appendBubble, wireIntake } from "../intake.js";
 
 const TOPBAR =
   "display:flex;align-items:center;gap:10px;padding:13px 20px;border-bottom:1px solid #1a2130;background:#0b0f16;font-size:12px;";
-
-const ACCENT_USER = "#5ec6ff";
-const ACCENT_BOT = "#7b5cff";
-const TERMINAL = "#36f9d0";
-const WARN = "#ff8fa3";
-
-/**
- * Turn a failed intake callable into a message that names the actual cause,
- * instead of always blaming a missing backend. Firebase callables reject with a
- * FirebaseError carrying a `functions/*` code; surface it so a misconfiguration
- * (not signed in, callable not deployed, emulator down) is distinguishable.
- *
- * User-facing copy never says "normalise" — that is our internal term for the
- * pipeline, not language the user should meet (the assistant simply "reads"
- * their portfolio).
- */
-function describeIntakeError(e: unknown): string {
-  const code = typeof e === "object" && e !== null ? (e as { code?: unknown }).code : undefined;
-  switch (code) {
-    case "functions/unauthenticated":
-      return "you're signed out — sign in again, then retry.";
-    case "functions/not-found":
-      return "the assistant isn't available right now (backend not deployed).";
-    case "functions/permission-denied":
-      return "your account isn't permitted to add holdings.";
-    case "functions/internal":
-    case "functions/unavailable":
-      return "couldn't reach the assistant — try again in a moment.";
-    default: {
-      const msg =
-        typeof e === "object" && e !== null ? (e as { message?: unknown }).message : undefined;
-      const suffix =
-        typeof code === "string" ? ` [${code}]` : typeof msg === "string" ? ` (${msg})` : "";
-      return `couldn't read that${suffix} — try again.`;
-    }
-  }
-}
-
-/** A chat bubble's mutable parts: the text node to stream into and its caret. */
-interface Bubble {
-  readonly txt: HTMLSpanElement;
-  readonly caret: HTMLSpanElement;
-}
-
-/** Append a chat bubble matching the design's two-tone styling; returns the
- *  text/caret handles so the assistant reply can be streamed in afterwards. */
-function appendBubble(thread: HTMLElement, role: "user" | "bot"): Bubble {
-  const me = role === "user";
-  const wrap = document.createElement("div");
-  wrap.style.cssText = `display:flex;flex-direction:column;gap:4px;align-items:${me ? "flex-end" : "flex-start"};`;
-
-  const who = document.createElement("div");
-  who.style.cssText = `font-size:9.5px;letter-spacing:1px;color:${me ? ACCENT_USER : ACCENT_BOT};`;
-  who.textContent = me ? "you" : "portfolio assistant";
-
-  const bubble = document.createElement("div");
-  bubble.style.cssText =
-    "max-width:78%;font-size:12.5px;line-height:1.55;padding:10px 13px;border-radius:9px;" +
-    (me
-      ? "background:#0c1a26;border:1px solid #173042;color:#cfe6f5;"
-      : "background:#0f0b1e;border:1px solid #241d44;color:#d7dee8;");
-
-  const txt = document.createElement("span");
-  const caret = document.createElement("span");
-  // The same block caret the boot screen uses — terminal-green, blinking.
-  caret.style.cssText = `display:none;width:7px;height:13px;background:${TERMINAL};margin-left:2px;vertical-align:-2px;animation:caret 1s steps(1) infinite;box-shadow:0 0 8px ${TERMINAL};`;
-  bubble.append(txt, caret);
-
-  wrap.append(who, bubble);
-  thread.append(wrap);
-  return { txt, caret };
-}
-
-/** Type `full` into a bubble one character at a time — the terminal stream. With
- *  reduced motion the whole string lands at once. Resolves when the text is in. */
-function streamText(
-  b: Bubble,
-  full: string,
-  reduce: boolean,
-  scroll: () => void,
-): Promise<void> {
-  return new Promise((resolve) => {
-    if (reduce) {
-      b.txt.textContent = full;
-      scroll();
-      resolve();
-      return;
-    }
-    b.caret.style.display = "inline-block";
-    let i = 0;
-    const tick = (): void => {
-      i = Math.min(full.length, i + 1);
-      b.txt.textContent = full.slice(0, i);
-      scroll();
-      if (i < full.length) window.setTimeout(tick, 15);
-      else resolve();
-    };
-    tick();
-  });
-}
-
-/** A terminal-style précis of the proposal, streamed back as the assistant reply. */
-function summarise(proposal: readonly ProposedPosition[]): string {
-  const n = proposal.length;
-  if (n === 0) {
-    return 'couldn\'t read any holdings there — try naming them, e.g. "12 AAPL, 0.5 BTC, 100 MSFT".';
-  }
-  const head = `parsed ${n} instrument${n === 1 ? "" : "s"}.`;
-  const flagged = proposal.filter((p) => p.confidence < 0.7);
-  const tail = "opening the proposal to review before anything goes live…";
-  if (flagged.length === 0) return `${head} all clear — ${tail}`;
-  const syms = flagged.map((p) => p.symbol).join(", ");
-  return `${head} ${flagged.length} need${flagged.length === 1 ? "s" : ""} your eye → ${syms}. ${tail}`;
-}
 
 /**
  * Holdings intake (brief §B). The same screen serves the first-run case (an empty
  * book) and adding to an existing book later — onboarding is just "add into an
  * empty book". Both routes — the chat input and the file drop — converge on the
- * same server-side pipeline; the assistant streams its reply back into the thread
- * (terminal animation) before the proposal screen opens. When a book already
+ * same server-side pipeline (see `wireIntake`); the assistant streams its reply
+ * back into the thread before the proposal screen opens. When a book already
  * exists, a way back to the dashboard is offered so intake is never a dead end.
  */
 export function renderOnboard(app: App): void {
@@ -172,9 +57,6 @@ export function renderOnboard(app: App): void {
 
   const thread = app.root.querySelector<HTMLDivElement>("#cc-thread")!;
   const chatInput = app.root.querySelector<HTMLInputElement>("#cc-chat")!;
-  const parseBtn = app.root.querySelector<HTMLButtonElement>("#cc-parse")!;
-  const fileInput = app.root.querySelector<HTMLInputElement>("#cc-file")!;
-  const err = app.root.querySelector<HTMLDivElement>("#cc-onerr")!;
 
   // When adding to an existing book, the dashboard is one click away — the live
   // feed kept running underneath, so returning is just a re-render.
@@ -185,86 +67,12 @@ export function renderOnboard(app: App): void {
   // Render any seed messages (none by default) through the shared bubble styling.
   for (const m of DEFAULT_CHAT) appendBubble(thread, m.role).txt.textContent = m.text;
 
-  const scroll = (): void => {
-    thread.scrollTop = thread.scrollHeight;
-  };
-  const fail = (m: string): void => {
-    err.textContent = m;
-    err.style.display = "block";
-  };
-  let busy = false;
-  const setBusy = (b: boolean): void => {
-    busy = b;
-    parseBtn.disabled = b;
-    chatInput.disabled = b;
-    fileInput.disabled = b;
-    parseBtn.textContent = b ? "parsing…" : "parse ↵";
-  };
-
-  const submit = async (input: NormalizeInput, echo: string): Promise<void> => {
-    if (busy) return;
-    err.style.display = "none";
-    setBusy(true);
-
-    appendBubble(thread, "user").txt.textContent = echo;
-    scroll();
-    const reply = appendBubble(thread, "bot");
-    reply.caret.style.display = "inline-block"; // thinking…
-    scroll();
-
-    try {
-      const proposal = await app.normalizeInput(input);
-      await streamText(reply, summarise(proposal), app.reduce, scroll);
-      reply.caret.style.display = "none";
-      if (proposal.length > 0) {
-        window.setTimeout(() => app.goScreen("confirm"), app.reduce ? 0 : 500);
-      } else {
-        setBusy(false);
-        chatInput.focus();
-      }
-    } catch (e) {
-      reply.txt.style.color = WARN;
-      await streamText(reply, describeIntakeError(e), app.reduce, scroll);
-      reply.caret.style.display = "none";
-      setBusy(false);
-      chatInput.focus();
-    }
-  };
-
-  const parseChat = (): void => {
-    const content = chatInput.value.trim();
-    if (content === "") {
-      fail("describe your portfolio first");
-      return;
-    }
-    chatInput.value = "";
-    void submit({ kind: "text", content }, content);
-  };
-
-  parseBtn.addEventListener("click", parseChat);
-  chatInput.addEventListener("keydown", (ev) => {
-    if (ev.key === "Enter") parseChat();
-  });
-
-  fileInput.addEventListener("change", () => {
-    const file = fileInput.files?.[0];
-    if (!file) return;
-    const lower = file.name.toLowerCase();
-    const isExcel = lower.endsWith(".xlsx") || lower.endsWith(".xls");
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (isExcel) {
-        const bytes = new Uint8Array(reader.result as ArrayBuffer);
-        let binary = "";
-        for (const b of bytes) binary += String.fromCharCode(b);
-        void submit({ kind: "xlsx", content: btoa(binary) }, `↑ ${file.name}`);
-      } else {
-        void submit({ kind: "csv", content: String(reader.result) }, `↑ ${file.name}`);
-      }
-    };
-    reader.onerror = () => fail("could not read that file");
-    if (isExcel) reader.readAsArrayBuffer(file);
-    else reader.readAsText(file);
+  wireIntake(app, {
+    thread,
+    chatInput,
+    parseBtn: app.root.querySelector<HTMLButtonElement>("#cc-parse")!,
+    fileInput: app.root.querySelector<HTMLInputElement>("#cc-file")!,
+    err: app.root.querySelector<HTMLDivElement>("#cc-onerr")!,
   });
 
   chatInput.focus();

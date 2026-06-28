@@ -44,3 +44,4 @@ Frontmatter (title, description, type, category, tags, status, created, updated,
 | [0011](0011-frontend-vanilla-ts-vite-single-raf.md) | Frontend is vanilla TS + Vite with a single rAF loop and two-tier state | accepted |
 | [0012](0012-access-gating-firestore-rules-allowlist.md) | Access gating via a Firestore-rules invite allowlist | accepted |
 | [0013](0013-always-available-holdings-intake-merge.md) | Holdings intake is always-available and merges into the book, user-resolved | accepted |
+| [0014](0014-domain-logo-provider-with-monogram-fallback.md) | Domain logo provider with monogram fallback | proposed |
